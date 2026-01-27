@@ -1,0 +1,14 @@
+# PostgreSQL data
+postgres_data/
+
+.env
+.fastapicloud/
+.pytest_cache/
+.ruff_cache/
+.vscode/
+.md
+.txt
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
