@@ -86,12 +86,69 @@ async def lifespan(app: FastAPI):
                 # Обновляем URL БД для тестовой БД
                 db_url = f"postgresql://{settings.DB_USERNAME}:{settings.DB_PASSWORD}@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
                 alembic_cfg.set_main_option("sqlalchemy.url", db_url)
-                command.upgrade(alembic_cfg, "head")
-                print("✅ Миграции применены к тестовой БД!")
+                
+                # Пытаемся применить миграции
+                try:
+                    command.upgrade(alembic_cfg, "head")
+                    print("✅ Миграции применены к тестовой БД!")
+                except Exception as migration_error:
+                    # Если миграции уже применены (таблицы существуют), помечаем их как примененные
+                    error_str = str(migration_error)
+                    if "already exists" in error_str or "DuplicateTable" in error_str:
+                        print("⚠️ Таблицы уже существуют, помечаем миграции как примененные...")
+                        command.stamp(alembic_cfg, "head")
+                        print("✅ Миграции помечены как примененные!")
+                    else:
+                        raise migration_error
             else:
                 print("⚠️ Файл alembic.ini не найден, миграции не применены")
         except Exception as e:
             print(f"⚠️ Ошибка при применении миграций: {e}")
+        
+        # Очищаем все данные из тестовой БД (оставляем только структуру таблиц)
+        # НЕ очищаем таблицу alembic_version, так как она нужна для отслеживания примененных миграций
+        print("🧹 Очистка данных из тестовой БД...")
+        try:
+            import psycopg2
+            
+            # Подключаемся к тестовой БД
+            conn = psycopg2.connect(
+                host=settings.DB_HOST,
+                port=settings.DB_PORT,
+                user=settings.DB_USERNAME,
+                password=settings.DB_PASSWORD,
+                database=settings.DB_NAME
+            )
+            conn.autocommit = True
+            cursor = conn.cursor()
+            
+            # Отключаем проверку внешних ключей для безопасной очистки
+            cursor.execute("SET session_replication_role = 'replica';")
+            
+            # Получаем список всех таблиц в схеме public, кроме alembic_version
+            cursor.execute("""
+                SELECT tablename FROM pg_tables 
+                WHERE schemaname = 'public' AND tablename != 'alembic_version'
+                ORDER BY tablename;
+            """)
+            tables = [row[0] for row in cursor.fetchall()]
+            
+            if tables:
+                # Очищаем все таблицы с CASCADE для очистки связанных таблиц
+                # RESTART IDENTITY сбрасывает автоинкрементные счетчики
+                table_list = ', '.join([f'"{table}"' for table in tables])
+                cursor.execute(f"TRUNCATE TABLE {table_list} RESTART IDENTITY CASCADE;")
+                print(f"✅ Очищено {len(tables)} таблиц в тестовой БД (alembic_version сохранена)")
+            else:
+                print("⚠️ Таблицы не найдены в тестовой БД")
+            
+            # Включаем обратно проверку внешних ключей
+            cursor.execute("SET session_replication_role = 'origin';")
+            
+            cursor.close()
+            conn.close()
+        except Exception as e:
+            print(f"⚠️ Ошибка при очистке тестовой БД: {e}")
     
     # Startup: проверка подключения к БД и Redis
     print("🔍 Проверка подключения к базе данных...")
