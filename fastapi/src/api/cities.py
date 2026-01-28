@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Query, HTTPException, Body, Path
 from typing import List
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from fastapi_cache.decorator import cache
 from fastapi_cache import FastAPICache
 from src.schemas.cities import City, CityPATCH, SchemaCity
@@ -236,8 +238,13 @@ async def partial_update_city(
     async with DBManager.transaction(db):
         cities_repo = DBManager.get_cities_repository(db)
         
-        # Проверяем существование города
-        existing_city_orm = await cities_repo._get_one_by_id_exact(city_id)
+        # Проверяем существование города с загрузкой связи country
+        query = select(cities_repo.model).options(
+            selectinload(cities_repo.model.country)
+        ).where(cities_repo.model.id == city_id)
+        result = await db.execute(query)
+        existing_city_orm = result.scalar_one_or_none()
+        
         if existing_city_orm is None:
             raise HTTPException(status_code=404, detail="Город не найден")
         
@@ -266,12 +273,19 @@ async def partial_update_city(
         
         # Проверяем, изменилось ли что-то, что требует проверки уникальности
         if final_name != existing_city.name or final_country_id != existing_city.country_id:
-            existing_city_check = await cities_repo.get_by_name_and_country_id(final_name, final_country_id)
-            if existing_city_check is not None and existing_city_check.id != city_id:
-                raise HTTPException(
-                    status_code=409,
-                    detail=f"Город '{final_name}' в стране с ID {final_country_id} уже существует"
-                )
+            try:
+                existing_city_check = await cities_repo.get_by_name_and_country_id(final_name, final_country_id)
+                if existing_city_check is not None and existing_city_check.id != city_id:
+                    raise HTTPException(
+                        status_code=409,
+                        detail=f"Город '{final_name}' в стране с ID {final_country_id} уже существует"
+                    )
+            except Exception as e:
+                # Если ошибка при проверке уникальности, логируем и пробрасываем дальше
+                import traceback
+                print(f"⚠️ Ошибка при проверке уникальности города: {e}")
+                traceback.print_exc()
+                raise
         
         # Обновляем город
         updated_city = await cities_repo.edit(id=city_id, **update_data)
