@@ -1,13 +1,14 @@
 # PostgreSQL data
 postgres_data/
 
-.env
+*.env
 .fastapicloud/
 .pytest_cache/
 .ruff_cache/
 .vscode/
-.md
-.txt
+*.md
+*.txt
+.DS_Store
 
 # Celery
 celerybeat-schedule
