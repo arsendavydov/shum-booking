@@ -2,7 +2,7 @@ import pytest
 import httpx
 import time
 from datetime import date, timedelta
-from tests.conftest import TEST_PASSWORD
+from tests.conftest import TEST_PASSWORD, TEST_EXAMPLE_EMAIL_DOMAIN
 
 
 @pytest.mark.bookings
@@ -24,7 +24,7 @@ class TestBookings:
         
         room_id = rooms_response.json()[0]["id"]
         
-        unique_email = f"{test_prefix}_booking_user_{int(time.time() * 1000)}@example.com"
+        unique_email = f"{test_prefix}_booking_user_{int(time.time() * 1000)}@{TEST_EXAMPLE_EMAIL_DOMAIN}"
         register_response = client.post(
             "/auth/register",
             json={
@@ -83,7 +83,7 @@ class TestBookings:
         
         room_id = rooms_response.json()[0]["id"]
         
-        unique_email = f"{test_prefix}_booking_invalid_{int(time.time() * 1000)}@example.com"
+        unique_email = f"{test_prefix}_booking_invalid_{int(time.time() * 1000)}@{TEST_EXAMPLE_EMAIL_DOMAIN}"
         register_response = client.post(
             "/auth/register",
             json={
@@ -119,7 +119,7 @@ class TestBookings:
         self, client, created_user_ids, test_prefix
     ):
         """Тест создания бронирования с несуществующим номером"""
-        unique_email = f"{test_prefix}_booking_nonexistent_room_{int(time.time() * 1000)}@example.com"
+        unique_email = f"{test_prefix}_booking_nonexistent_room_{int(time.time() * 1000)}@{TEST_EXAMPLE_EMAIL_DOMAIN}"
         register_response = client.post(
             "/auth/register",
             json={
@@ -205,7 +205,7 @@ class TestBookings:
         
         room_id = rooms_response.json()[0]["id"]
         
-        unique_email = f"{test_prefix}_my_bookings_{int(time.time() * 1000)}@example.com"
+        unique_email = f"{test_prefix}_my_bookings_{int(time.time() * 1000)}@{TEST_EXAMPLE_EMAIL_DOMAIN}"
         register_response = client.post(
             "/auth/register",
             json={
@@ -263,7 +263,7 @@ class TestBookings:
         self, client, created_user_ids, test_prefix
     ):
         """Тест удаления несуществующего бронирования"""
-        unique_email = f"{test_prefix}_delete_nonexistent_{int(time.time() * 1000)}@example.com"
+        unique_email = f"{test_prefix}_delete_nonexistent_{int(time.time() * 1000)}@{TEST_EXAMPLE_EMAIL_DOMAIN}"
         register_response = client.post(
             "/auth/register",
             json={

@@ -1,5 +1,6 @@
 import pytest
 import time
+from tests.conftest import TEST_EXAMPLE_EMAIL_DOMAIN
 
 
 @pytest.mark.users
@@ -38,12 +39,12 @@ class TestUsers:
         if not created_user_ids:
             return
         
-        response = client.get("/users?email=test@example.com")
+        response = client.get("/users?email=test@{TEST_EXAMPLE_EMAIL_DOMAIN}")
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
         if data:
-            assert data[0]["email"] == "test@example.com"
+            assert data[0]["email"] == "test@{TEST_EXAMPLE_EMAIL_DOMAIN}"
     
     def test_update_user(self, client, test_prefix, created_user_ids):
         """Тест обновления пользователя"""
@@ -51,7 +52,7 @@ class TestUsers:
             return
         
         user_id = created_user_ids[0]
-        unique_email = f"{test_prefix}_updated_{int(time.time() * 1000)}@example.com"
+        unique_email = f"{test_prefix}_updated_{int(time.time() * 1000)}@{TEST_EXAMPLE_EMAIL_DOMAIN}"
         response = client.put(
             f"/users/{user_id}",
             json={
@@ -69,7 +70,7 @@ class TestUsers:
         response = client.put(
             "/users/99999",
             json={
-                "email": "test@example.com",
+                "email": "test@{TEST_EXAMPLE_EMAIL_DOMAIN}",
                 "hashed_password": "pass123"
             }
         )

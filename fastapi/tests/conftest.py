@@ -17,7 +17,7 @@ if env_test_path.exists():
 
 # Тестовые данные из переменных окружения (обязательны для тестов)
 TEST_PASSWORD = os.getenv("TEST_PASSWORD")
-TEST_EXAMPLE_EMAIL_DOMAIN = os.getenv("TEST_EXAMPLE_EMAIL_DOMAIN", "example.com")
+TEST_EXAMPLE_EMAIL_DOMAIN = os.getenv("TEST_EXAMPLE_EMAIL_DOMAIN", "shum-booking.com")
 
 if not TEST_PASSWORD:
     raise ValueError(

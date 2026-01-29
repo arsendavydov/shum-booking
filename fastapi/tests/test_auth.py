@@ -1,7 +1,7 @@
 import pytest
 import httpx
 import time
-from tests.conftest import TEST_PASSWORD
+from tests.conftest import TEST_PASSWORD, TEST_EXAMPLE_EMAIL_DOMAIN
 
 
 @pytest.mark.auth
@@ -10,7 +10,7 @@ class TestAuth:
     
     def test_register_user_minimal(self, client, test_prefix, created_user_ids):
         """Тест минимальной регистрации пользователя"""
-        unique_email = f"{test_prefix}_test_{int(time.time() * 1000)}@example.com"
+        unique_email = f"{test_prefix}_test_{int(time.time() * 1000)}@{TEST_EXAMPLE_EMAIL_DOMAIN}"
         response = client.post(
             "/auth/register",
             json={
@@ -29,7 +29,7 @@ class TestAuth:
     
     def test_register_user_full(self, client, test_prefix, created_user_ids):
         """Тест полной регистрации пользователя"""
-        unique_email = f"{test_prefix}_fulluser_{int(time.time() * 1000)}@example.com"
+        unique_email = f"{test_prefix}_fulluser_{int(time.time() * 1000)}@{TEST_EXAMPLE_EMAIL_DOMAIN}"
         response = client.post(
             "/auth/register",
             json={
@@ -54,7 +54,7 @@ class TestAuth:
     
     def test_register_user_duplicate_email(self, client, test_prefix, created_user_ids):
         """Тест регистрации с дублирующимся email"""
-        unique_email = f"{test_prefix}_duplicate_{int(time.time() * 1000)}@example.com"
+        unique_email = f"{test_prefix}_duplicate_{int(time.time() * 1000)}@{TEST_EXAMPLE_EMAIL_DOMAIN}"
         create_response = client.post(
             "/auth/register",
             json={
@@ -92,7 +92,7 @@ class TestAuth:
         response = client.post(
             "/auth/register",
             json={
-                "email": "shortpass@example.com",
+                "email": "shortpass@{TEST_EXAMPLE_EMAIL_DOMAIN}",
                 "password": "short"
             }
         )
@@ -113,14 +113,14 @@ class TestAuth:
         response = client.post(
             "/auth/register",
             json={
-                "email": "nopass@example.com"
+                "email": "nopass@{TEST_EXAMPLE_EMAIL_DOMAIN}"
             }
         )
         assert response.status_code == 422
     
     def test_login_user_success(self, client, test_prefix, created_user_ids):
         """Тест успешного входа пользователя"""
-        unique_email = f"{test_prefix}_login_{int(time.time() * 1000)}@example.com"
+        unique_email = f"{test_prefix}_login_{int(time.time() * 1000)}@{TEST_EXAMPLE_EMAIL_DOMAIN}"
         password = TEST_PASSWORD
         
         register_response = client.post(
@@ -157,7 +157,7 @@ class TestAuth:
         response = client.post(
             "/auth/login",
             json={
-                "email": "nonexistent@example.com",
+                "email": "nonexistent@{TEST_EXAMPLE_EMAIL_DOMAIN}",
                 "password": TEST_PASSWORD
             }
         )
@@ -166,7 +166,7 @@ class TestAuth:
     
     def test_login_user_wrong_password(self, client, test_prefix, created_user_ids):
         """Тест входа с неверным паролем"""
-        unique_email = f"{test_prefix}_wrongpass_{int(time.time() * 1000)}@example.com"
+        unique_email = f"{test_prefix}_wrongpass_{int(time.time() * 1000)}@{TEST_EXAMPLE_EMAIL_DOMAIN}"
         
         register_response = client.post(
             "/auth/register",
@@ -215,14 +215,14 @@ class TestAuth:
         response = client.post(
             "/auth/login",
             json={
-                "email": "user@example.com"
+                "email": "user@{TEST_EXAMPLE_EMAIL_DOMAIN}"
             }
         )
         assert response.status_code == 422
     
     def test_get_current_user_success_with_cookie(self, client, test_prefix, created_user_ids):
         """Тест получения текущего пользователя через cookie"""
-        unique_email = f"{test_prefix}_me_cookie_{int(time.time() * 1000)}@example.com"
+        unique_email = f"{test_prefix}_me_cookie_{int(time.time() * 1000)}@{TEST_EXAMPLE_EMAIL_DOMAIN}"
         password = TEST_PASSWORD
         
         register_response = client.post(
@@ -258,7 +258,7 @@ class TestAuth:
     
     def test_get_current_user_success_with_header(self, client, test_prefix, created_user_ids):
         """Тест получения текущего пользователя через header"""
-        unique_email = f"{test_prefix}_me_header_{int(time.time() * 1000)}@example.com"
+        unique_email = f"{test_prefix}_me_header_{int(time.time() * 1000)}@{TEST_EXAMPLE_EMAIL_DOMAIN}"
         password = TEST_PASSWORD
         
         test_client = httpx.Client(base_url="http://localhost:8000", timeout=10.0)
@@ -330,7 +330,7 @@ class TestAuth:
     
     def test_logout_user_success(self, client, test_prefix, created_user_ids):
         """Тест успешного выхода пользователя"""
-        unique_email = f"{test_prefix}_logout_{int(time.time() * 1000)}@example.com"
+        unique_email = f"{test_prefix}_logout_{int(time.time() * 1000)}@{TEST_EXAMPLE_EMAIL_DOMAIN}"
         password = TEST_PASSWORD
         
         register_response = client.post(
