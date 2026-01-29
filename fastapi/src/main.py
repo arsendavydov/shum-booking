@@ -74,6 +74,8 @@ async def lifespan(app: FastAPI):
             print(f"⚠️ Ошибка при работе с тестовой БД: {e}")
     
     # Применяем миграции для тестовой БД, если DB_NAME=test
+    # Примечание: Очистка БД выполняется в conftest.py через drop_all/create_all,
+    # поэтому здесь только применяем миграции для создания структуры таблиц
     if settings.DB_NAME == "test":
         print("🔧 Применение миграций к тестовой БД...")
         try:
@@ -106,51 +108,6 @@ async def lifespan(app: FastAPI):
                 print("⚠️ Файл alembic.ini не найден, миграции не применены")
         except Exception as e:
             print(f"⚠️ Ошибка при применении миграций: {e}")
-        
-        # Очищаем все данные из тестовой БД (оставляем только структуру таблиц)
-        # НЕ очищаем таблицу alembic_version, так как она нужна для отслеживания примененных миграций
-        print("🧹 Очистка данных из тестовой БД...")
-        try:
-            import psycopg2
-            
-            # Подключаемся к тестовой БД
-            conn = psycopg2.connect(
-                host=settings.DB_HOST,
-                port=settings.DB_PORT,
-                user=settings.DB_USERNAME,
-                password=settings.DB_PASSWORD,
-                database=settings.DB_NAME
-            )
-            conn.autocommit = True
-            cursor = conn.cursor()
-            
-            # Отключаем проверку внешних ключей для безопасной очистки
-            cursor.execute("SET session_replication_role = 'replica';")
-            
-            # Получаем список всех таблиц в схеме public, кроме alembic_version
-            cursor.execute("""
-                SELECT tablename FROM pg_tables 
-                WHERE schemaname = 'public' AND tablename != 'alembic_version'
-                ORDER BY tablename;
-            """)
-            tables = [row[0] for row in cursor.fetchall()]
-            
-            if tables:
-                # Очищаем все таблицы с CASCADE для очистки связанных таблиц
-                # RESTART IDENTITY сбрасывает автоинкрементные счетчики
-                table_list = ', '.join([f'"{table}"' for table in tables])
-                cursor.execute(f"TRUNCATE TABLE {table_list} RESTART IDENTITY CASCADE;")
-                print(f"✅ Очищено {len(tables)} таблиц в тестовой БД (alembic_version сохранена)")
-            else:
-                print("⚠️ Таблицы не найдены в тестовой БД")
-            
-            # Включаем обратно проверку внешних ключей
-            cursor.execute("SET session_replication_role = 'origin';")
-            
-            cursor.close()
-            conn.close()
-        except Exception as e:
-            print(f"⚠️ Ошибка при очистке тестовой БД: {e}")
     
     # Startup: проверка подключения к БД и Redis
     print("🔍 Проверка подключения к базе данных...")
