@@ -28,17 +28,18 @@ DB_NAME = os.getenv('DB_NAME', 'booking')
 DB_USERNAME = os.getenv('DB_USERNAME', 'postgres')
 DB_PASSWORD = os.getenv('DB_PASSWORD', 'postgres')
 
-def get_db_session(db_name: str | None = None):
-    """Создать синхронную сессию БД на основе текущих переменных окружения или переданного db_name."""
-    db_name_to_use = db_name or DB_NAME
-    db_url = f"postgresql+psycopg2://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{db_name_to_use}"
+def get_db_session(db_name: str):
+    """Создать синхронную сессию БД на основе переданного db_name."""
+    if not db_name:
+        raise ValueError("db_name обязателен для создания сессии БД")
+    db_url = f"postgresql+psycopg2://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{db_name}"
     engine = create_engine(db_url)
     Session = sessionmaker(bind=engine)
     return Session()
 
 
 @celery_app.task(bind=True, name='process_image')
-def process_image(self: Task, hotel_id: int, original_filename: str, temp_file_path: str, db_name: str | None = None) -> dict:
+def process_image(self: Task, hotel_id: int, original_filename: str, temp_file_path: str, db_name: str) -> dict:
     """
     Обработка изображения: проверка размера, создание записи в БД, ресайз и сохранение.
     
@@ -119,7 +120,7 @@ def process_image(self: Task, hotel_id: int, original_filename: str, temp_file_p
         }
 
 
-def _create_image_in_db_sync(hotel_id: int, original_filename: str, width: int, height: int, db_name: str | None = None) -> int | None:
+def _create_image_in_db_sync(hotel_id: int, original_filename: str, width: int, height: int, db_name: str) -> int | None:
     """Создать запись изображения в БД и связать с отелем (синхронно)."""
     session = get_db_session(db_name)
     try:
