@@ -16,14 +16,13 @@ if env_test_path.exists():
     load_dotenv(env_test_path, override=True)
 
 # Тестовые данные из переменных окружения (обязательны для тестов)
-TEST_USER_PASSWORD = os.getenv("TEST_USER_PASSWORD")
-TEST_SECURE_PASSWORD = os.getenv("TEST_SECURE_PASSWORD")
+TEST_PASSWORD = os.getenv("TEST_PASSWORD")
 TEST_EXAMPLE_EMAIL_DOMAIN = os.getenv("TEST_EXAMPLE_EMAIL_DOMAIN", "example.com")
 
-if not TEST_USER_PASSWORD or not TEST_SECURE_PASSWORD:
+if not TEST_PASSWORD:
     raise ValueError(
-        "Переменные окружения TEST_USER_PASSWORD и TEST_SECURE_PASSWORD должны быть установлены в .test.env файле. "
-        "Эти пароли используются для создания тестовых пользователей во время тестов."
+        "Переменная окружения TEST_PASSWORD должна быть установлена в .test.env файле. "
+        "Этот пароль используется для создания тестовых пользователей во время тестов."
     )
 
 
@@ -278,7 +277,7 @@ def cleanup_after_test(
                     "/auth/login",
                     json={
                         "email": user_email,
-                        "password": TEST_USER_PASSWORD
+                        "password": TEST_PASSWORD
                     }
                 )
                 if login_response.status_code == 200:

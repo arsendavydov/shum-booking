@@ -1,7 +1,7 @@
 import pytest
 import httpx
 import time
-from tests.conftest import TEST_SECURE_PASSWORD
+from tests.conftest import TEST_PASSWORD
 
 
 @pytest.mark.auth
@@ -15,7 +15,7 @@ class TestAuth:
             "/auth/register",
             json={
                 "email": unique_email,
-                "password": TEST_SECURE_PASSWORD
+                "password": TEST_PASSWORD
             }
         )
         assert response.status_code == 201
@@ -34,7 +34,7 @@ class TestAuth:
             "/auth/register",
             json={
                 "email": unique_email,
-                "password": TEST_SECURE_PASSWORD,
+                "password": TEST_PASSWORD,
                 "first_name": "Иван",
                 "last_name": "Иванов",
                 "telegram_id": 123456789,
@@ -59,7 +59,7 @@ class TestAuth:
             "/auth/register",
             json={
                 "email": unique_email,
-                "password": TEST_SECURE_PASSWORD
+                "password": TEST_PASSWORD
             }
         )
         assert create_response.status_code == 201
@@ -70,7 +70,7 @@ class TestAuth:
             "/auth/register",
             json={
                 "email": unique_email,
-                "password": TEST_SECURE_PASSWORD
+                "password": TEST_PASSWORD
             }
         )
         assert response.status_code == 409
@@ -82,7 +82,7 @@ class TestAuth:
             "/auth/register",
             json={
                 "email": "invalid-email",
-                "password": TEST_SECURE_PASSWORD
+                "password": TEST_PASSWORD
             }
         )
         assert response.status_code == 422
@@ -103,7 +103,7 @@ class TestAuth:
         response = client.post(
             "/auth/register",
             json={
-                "password": TEST_SECURE_PASSWORD
+                "password": TEST_PASSWORD
             }
         )
         assert response.status_code == 422
@@ -121,7 +121,7 @@ class TestAuth:
     def test_login_user_success(self, client, test_prefix, created_user_ids):
         """Тест успешного входа пользователя"""
         unique_email = f"{test_prefix}_login_{int(time.time() * 1000)}@example.com"
-        password = TEST_SECURE_PASSWORD
+        password = TEST_PASSWORD
         
         register_response = client.post(
             "/auth/register",
@@ -158,7 +158,7 @@ class TestAuth:
             "/auth/login",
             json={
                 "email": "nonexistent@example.com",
-                "password": TEST_SECURE_PASSWORD
+                "password": TEST_PASSWORD
             }
         )
         assert response.status_code == 401
@@ -172,7 +172,7 @@ class TestAuth:
             "/auth/register",
             json={
                 "email": unique_email,
-                "password": TEST_SECURE_PASSWORD
+                "password": TEST_PASSWORD
             }
         )
         assert register_response.status_code == 201
@@ -195,7 +195,7 @@ class TestAuth:
             "/auth/login",
             json={
                 "email": "invalid-email",
-                "password": TEST_SECURE_PASSWORD
+                "password": TEST_PASSWORD
             }
         )
         assert response.status_code == 422
@@ -205,7 +205,7 @@ class TestAuth:
         response = client.post(
             "/auth/login",
             json={
-                "password": TEST_SECURE_PASSWORD
+                "password": TEST_PASSWORD
             }
         )
         assert response.status_code == 422
@@ -223,7 +223,7 @@ class TestAuth:
     def test_get_current_user_success_with_cookie(self, client, test_prefix, created_user_ids):
         """Тест получения текущего пользователя через cookie"""
         unique_email = f"{test_prefix}_me_cookie_{int(time.time() * 1000)}@example.com"
-        password = TEST_SECURE_PASSWORD
+        password = TEST_PASSWORD
         
         register_response = client.post(
             "/auth/register",
@@ -259,7 +259,7 @@ class TestAuth:
     def test_get_current_user_success_with_header(self, client, test_prefix, created_user_ids):
         """Тест получения текущего пользователя через header"""
         unique_email = f"{test_prefix}_me_header_{int(time.time() * 1000)}@example.com"
-        password = TEST_SECURE_PASSWORD
+        password = TEST_PASSWORD
         
         test_client = httpx.Client(base_url="http://localhost:8000", timeout=10.0)
         
@@ -331,7 +331,7 @@ class TestAuth:
     def test_logout_user_success(self, client, test_prefix, created_user_ids):
         """Тест успешного выхода пользователя"""
         unique_email = f"{test_prefix}_logout_{int(time.time() * 1000)}@example.com"
-        password = TEST_SECURE_PASSWORD
+        password = TEST_PASSWORD
         
         register_response = client.post(
             "/auth/register",
