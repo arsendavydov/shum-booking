@@ -90,6 +90,14 @@ def test_prefix():
 
 
 @pytest.fixture(scope="session", autouse=True)
+def cleanup_before_tests():
+    """Очищает тестовую БД перед запуском всех тестов"""
+    print("🧹 Очистка тестовой БД перед запуском тестов...")
+    cleanup_test_database()
+    yield
+
+
+@pytest.fixture(scope="session", autouse=True)
 def setup_test_city(client):
     """Создает страну 'Россия' и город 'Москва' в тестовой БД перед запуском тестов через API"""
     try:
