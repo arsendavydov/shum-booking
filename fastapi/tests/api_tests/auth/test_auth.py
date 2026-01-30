@@ -6,10 +6,10 @@ from tests.api_tests import TEST_PASSWORD, TEST_EXAMPLE_EMAIL_DOMAIN
 
 @pytest.mark.auth
 class TestAuth:
-    """Тесты для эндпоинтов аутентификации"""
+    """Эндпоинты аутентификации"""
     
     def test_register_user_minimal(self, client, test_prefix, created_user_ids):
-        """Тест минимальной регистрации пользователя"""
+        """Минимальная регистрация"""
         unique_email = f"{test_prefix}_test_{int(time.time() * 1000)}@{TEST_EXAMPLE_EMAIL_DOMAIN}"
         response = client.post(
             "/auth/register",
@@ -28,7 +28,7 @@ class TestAuth:
         created_user_ids.append(data["id"])
     
     def test_register_user_full(self, client, test_prefix, created_user_ids):
-        """Тест полной регистрации пользователя"""
+        """Полная регистрация"""
         unique_email = f"{test_prefix}_fulluser_{int(time.time() * 1000)}@{TEST_EXAMPLE_EMAIL_DOMAIN}"
         response = client.post(
             "/auth/register",
@@ -53,7 +53,7 @@ class TestAuth:
         created_user_ids.append(data["id"])
     
     def test_register_user_duplicate_email(self, client, test_prefix, created_user_ids):
-        """Тест регистрации с дублирующимся email"""
+        """Регистрация с дублирующимся email"""
         unique_email = f"{test_prefix}_duplicate_{int(time.time() * 1000)}@{TEST_EXAMPLE_EMAIL_DOMAIN}"
         create_response = client.post(
             "/auth/register",
@@ -77,7 +77,7 @@ class TestAuth:
         assert "уже существует" in response.json()["detail"]
     
     def test_register_user_invalid_email(self, client):
-        """Тест регистрации с невалидным email"""
+        """Регистрация с невалидным email"""
         response = client.post(
             "/auth/register",
             json={
@@ -88,7 +88,7 @@ class TestAuth:
         assert response.status_code == 422
     
     def test_register_user_short_password(self, client):
-        """Тест регистрации с коротким паролем"""
+        """Регистрация с коротким паролем"""
         response = client.post(
             "/auth/register",
             json={
@@ -99,7 +99,7 @@ class TestAuth:
         assert response.status_code == 422
     
     def test_register_user_missing_email(self, client):
-        """Тест регистрации без email"""
+        """Регистрация без email"""
         response = client.post(
             "/auth/register",
             json={
@@ -109,7 +109,7 @@ class TestAuth:
         assert response.status_code == 422
     
     def test_register_user_missing_password(self, client):
-        """Тест регистрации без password"""
+        """Регистрация без password"""
         response = client.post(
             "/auth/register",
             json={
@@ -119,7 +119,7 @@ class TestAuth:
         assert response.status_code == 422
     
     def test_login_user_success(self, client, test_prefix, created_user_ids):
-        """Тест успешного входа пользователя"""
+        """Вход пользователя"""
         unique_email = f"{test_prefix}_login_{int(time.time() * 1000)}@{TEST_EXAMPLE_EMAIL_DOMAIN}"
         password = TEST_PASSWORD
         
@@ -153,7 +153,7 @@ class TestAuth:
         assert cookies["access_token"] == token_data["access_token"]
     
     def test_login_user_wrong_email(self, client):
-        """Тест входа с неверным email"""
+        """Вход с неверным email"""
         response = client.post(
             "/auth/login",
             json={
@@ -165,7 +165,7 @@ class TestAuth:
         assert "Пользователь с таким email не найден" in response.json()["detail"]
     
     def test_login_user_wrong_password(self, client, test_prefix, created_user_ids):
-        """Тест входа с неверным паролем"""
+        """Вход с неверным паролем"""
         unique_email = f"{test_prefix}_wrongpass_{int(time.time() * 1000)}@{TEST_EXAMPLE_EMAIL_DOMAIN}"
         
         register_response = client.post(
@@ -190,7 +190,7 @@ class TestAuth:
         assert "Неверный пароль" in login_response.json()["detail"]
     
     def test_login_user_invalid_email(self, client):
-        """Тест входа с невалидным email"""
+        """Вход с невалидным email"""
         response = client.post(
             "/auth/login",
             json={
@@ -201,7 +201,7 @@ class TestAuth:
         assert response.status_code == 422
     
     def test_login_user_missing_email(self, client):
-        """Тест входа без email"""
+        """Вход без email"""
         response = client.post(
             "/auth/login",
             json={
@@ -211,7 +211,7 @@ class TestAuth:
         assert response.status_code == 422
     
     def test_login_user_missing_password(self, client):
-        """Тест входа без password"""
+        """Вход без password"""
         response = client.post(
             "/auth/login",
             json={
@@ -221,7 +221,7 @@ class TestAuth:
         assert response.status_code == 422
     
     def test_get_current_user_success_with_cookie(self, client, test_prefix, created_user_ids):
-        """Тест получения текущего пользователя через cookie"""
+        """Получение текущего пользователя через cookie"""
         unique_email = f"{test_prefix}_me_cookie_{int(time.time() * 1000)}@{TEST_EXAMPLE_EMAIL_DOMAIN}"
         password = TEST_PASSWORD
         
@@ -257,7 +257,7 @@ class TestAuth:
         assert me_data["last_name"] == "Пользователь"
     
     def test_get_current_user_success_with_header(self, client, test_prefix, created_user_ids):
-        """Тест получения текущего пользователя через header"""
+        """Получение текущего пользователя через header"""
         unique_email = f"{test_prefix}_me_header_{int(time.time() * 1000)}@{TEST_EXAMPLE_EMAIL_DOMAIN}"
         password = TEST_PASSWORD
         
@@ -299,7 +299,7 @@ class TestAuth:
         clean_client.close()
     
     def test_get_current_user_no_token(self, client):
-        """Тест получения текущего пользователя без токена"""
+        """Получение текущего пользователя без токена"""
         test_client = httpx.Client(base_url="http://localhost:8000", timeout=10.0)
         response = test_client.get("/auth/me")
         assert response.status_code == 401
@@ -307,7 +307,7 @@ class TestAuth:
         test_client.close()
     
     def test_get_current_user_invalid_token(self, client):
-        """Тест получения текущего пользователя с невалидным токеном"""
+        """Получение текущего пользователя с невалидным токеном"""
         test_client = httpx.Client(base_url="http://localhost:8000", timeout=10.0)
         response = test_client.get(
             "/auth/me",
@@ -318,7 +318,7 @@ class TestAuth:
         test_client.close()
     
     def test_get_current_user_malformed_token(self, client):
-        """Тест получения текущего пользователя с неправильным форматом токена"""
+        """Получение текущего пользователя с неправильным форматом токена"""
         test_client = httpx.Client(base_url="http://localhost:8000", timeout=10.0)
         response = test_client.get(
             "/auth/me",
@@ -329,7 +329,7 @@ class TestAuth:
         test_client.close()
     
     def test_logout_user_success(self, client, test_prefix, created_user_ids):
-        """Тест успешного выхода пользователя"""
+        """Вход выхода пользователя"""
         unique_email = f"{test_prefix}_logout_{int(time.time() * 1000)}@{TEST_EXAMPLE_EMAIL_DOMAIN}"
         password = TEST_PASSWORD
         
@@ -359,10 +359,10 @@ class TestAuth:
         assert logout_response.json() == {"status": "OK"}
     
     def test_logout_user_no_auth(self, client):
-        """Тест выхода без авторизации"""
+        """Выход без авторизации"""
         test_client = httpx.Client(base_url="http://localhost:8000", timeout=10.0)
         response = test_client.post("/auth/logout")
-        assert response.status_code == 200
-        assert response.json() == {"status": "OK"}
+        assert response.status_code == 401
+        assert "Токен доступа не предоставлен" in response.json()["detail"]
         test_client.close()
 

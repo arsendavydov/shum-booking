@@ -4,10 +4,10 @@ import time
 
 @pytest.mark.cities
 class TestCities:
-    """Тесты для эндпоинтов городов"""
+    """Эндпоинты городов"""
     
     def test_get_all_cities(self, client):
-        """Тест получения списка всех городов"""
+        """Получение всех городов"""
         response = client.get("/cities")
         assert response.status_code == 200
         data = response.json()
@@ -15,7 +15,7 @@ class TestCities:
         assert len(data) <= 10
     
     def test_get_city_by_id(self, client, test_prefix):
-        """Тест получения города по ID"""
+        """Получение города по ID"""
         # Сначала создаем страну
         country_name = f"{test_prefix} Тестовая Страна {int(time.time())}"
         country_response = client.post("/countries", json={"name": country_name, "iso_code": "TC"})
@@ -47,13 +47,13 @@ class TestCities:
                         client.delete(f"/countries/{country_id}")
     
     def test_get_city_by_id_nonexistent(self, client):
-        """Тест получения несуществующего города по ID"""
+        """Получение несуществующего города по ID"""
         response = client.get("/cities/99999")
         assert response.status_code == 404
         assert "не найден" in response.json()["detail"].lower()
     
     def test_create_city(self, client, test_prefix):
-        """Тест создания города"""
+        """Создание города"""
         # Сначала создаем страну
         country_name = f"{test_prefix} Страна для города {int(time.time())}"
         country_response = client.post("/countries", json={"name": country_name, "iso_code": "CG"})
@@ -75,7 +75,7 @@ class TestCities:
                 client.delete(f"/countries/{country_id}")
     
     def test_create_city_nonexistent_country(self, client, test_prefix):
-        """Тест создания города с несуществующей страной"""
+        """Создание города с несуществующей страной"""
         unique_name = f"{test_prefix} Город без страны {int(time.time())}"
         city_data = {"name": unique_name, "country_id": 99999}
         response = client.post("/cities", json=city_data)
@@ -83,7 +83,7 @@ class TestCities:
         assert "Страна" in response.json()["detail"]
     
     def test_create_city_duplicate(self, client, test_prefix):
-        """Тест создания города с дублирующимся названием в той же стране"""
+        """Создание города с дублирующимся названием в той же стране"""
         # Сначала создаем страну
         country_name = f"{test_prefix} Дубликат Страна {int(time.time())}"
         country_response = client.post("/countries", json={"name": country_name, "iso_code": "DS"})
@@ -108,7 +108,7 @@ class TestCities:
                 client.delete(f"/countries/{country_id}")
     
     def test_update_city(self, client, test_prefix):
-        """Тест обновления города"""
+        """Обновление города"""
         # Сначала создаем страну
         country_name = f"{test_prefix} Обновляемая Страна {int(time.time())}"
         country_response = client.post("/countries", json={"name": country_name, "iso_code": "OS"})
@@ -142,7 +142,7 @@ class TestCities:
                 client.delete(f"/countries/{country_id}")
     
     def test_update_nonexistent_city(self, client):
-        """Тест обновления несуществующего города"""
+        """Обновление несуществующего города"""
         response = client.put(
             "/cities/99999",
             json={"name": "Тест", "country_id": 1}
@@ -150,7 +150,7 @@ class TestCities:
         assert response.status_code == 404
     
     def test_partial_update_city(self, client, test_prefix):
-        """Тест частичного обновления города"""
+        """Частичное обновление города"""
         # Сначала создаем страну
         country_name = f"{test_prefix} Частично Страна {int(time.time())}"
         country_response = client.post("/countries", json={"name": country_name, "iso_code": "CS"})
@@ -184,7 +184,7 @@ class TestCities:
                 client.delete(f"/countries/{country_id}")
     
     def test_partial_update_nonexistent_city(self, client):
-        """Тест частичного обновления несуществующего города"""
+        """Частичное обновление несуществующего города"""
         response = client.patch(
             "/cities/99999",
             json={"name": "Test"}
@@ -192,7 +192,7 @@ class TestCities:
         assert response.status_code == 404
     
     def test_delete_city(self, client, test_prefix):
-        """Тест удаления города"""
+        """Удаление города"""
         # Сначала создаем страну
         country_name = f"{test_prefix} Удаление Страна {int(time.time())}"
         country_response = client.post("/countries", json={"name": country_name, "iso_code": "US"})
@@ -220,12 +220,12 @@ class TestCities:
                 client.delete(f"/countries/{country_id}")
     
     def test_delete_nonexistent_city(self, client):
-        """Тест удаления несуществующего города"""
+        """Удаление несуществующего города"""
         response = client.delete("/cities/99999")
         assert response.status_code == 404
     
     def test_filter_cities_by_name(self, client, test_prefix):
-        """Тест фильтрации городов по названию"""
+        """фильтрации городов по названию"""
         # Сначала создаем страну
         country_name = f"{test_prefix} Фильтр Страна {int(time.time())}"
         country_response = client.post("/countries", json={"name": country_name, "iso_code": "FS"})
@@ -254,7 +254,7 @@ class TestCities:
                 client.delete(f"/countries/{country_id}")
     
     def test_filter_cities_by_country_id(self, client, test_prefix):
-        """Тест фильтрации городов по ID страны"""
+        """фильтрации городов по ID страны"""
         # Сначала создаем страну
         country_name = f"{test_prefix} Фильтр по стране {int(time.time())}"
         country_response = client.post("/countries", json={"name": country_name, "iso_code": "FC"})
@@ -282,7 +282,7 @@ class TestCities:
                 client.delete(f"/countries/{country_id}")
     
     def test_cities_pagination(self, client):
-        """Тест пагинации для городов"""
+        """пагинации для городов"""
         response = client.get("/cities?page=1&per_page=3")
         assert response.status_code == 200
         data = response.json()

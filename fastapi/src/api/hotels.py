@@ -2,10 +2,9 @@ from fastapi import APIRouter, Query, HTTPException, Body
 from typing import List
 from datetime import time, date
 from fastapi_cache.decorator import cache
-from fastapi_cache import FastAPICache
 from src.schemas.hotels import Hotel, HotelPATCH, SchemaHotel, SchemaHotelWithRooms
 from src.schemas import MessageResponse
-from src.api import PaginationDep, DBDep, get_or_404
+from src.api import PaginationDep, DBDep, get_or_404, invalidate_cache, validate_city_by_name, handle_delete_operation
 from src.utils.db_manager import DBManager
 
 router = APIRouter()
@@ -189,13 +188,7 @@ async def create_hotel(
     """
     async with DBManager.transaction(db):
         # Валидируем существование города (без учета регистра)
-        cities_repo = DBManager.get_cities_repository(db)
-        city_orm = await cities_repo.get_by_name_case_insensitive(hotel.city)
-        if city_orm is None:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Город '{hotel.city}' не найден"
-            )
+        city_id = await validate_city_by_name(db, hotel.city)
         
         # Проверяем уникальность title
         hotels_repo = DBManager.get_hotels_repository(db)
@@ -207,7 +200,7 @@ async def create_hotel(
         
         # Создаем отель с city_id из найденного города
         hotel_data = hotel.model_dump()
-        hotel_data['city_id'] = city_orm.id
+        hotel_data['city_id'] = city_id
         del hotel_data['city']  # Удаляем city, так как в БД хранится city_id
         # Если check_in_time или check_out_time не указаны, используем дефолтные значения
         if hotel_data.get('check_in_time') is None:
@@ -217,7 +210,7 @@ async def create_hotel(
         await hotels_repo.create(**hotel_data)
     
     # Инвалидируем кэш отелей
-    await FastAPICache.clear(namespace="hotels")
+    await invalidate_cache("hotels")
     
     return MessageResponse(status="OK")
 
@@ -267,13 +260,7 @@ async def update_hotel(
             raise HTTPException(status_code=404, detail="Отель не найден")
         
         # Валидируем существование города (без учета регистра)
-        cities_repo = DBManager.get_cities_repository(db)
-        city_orm = await cities_repo.get_by_name_case_insensitive(hotel.city)
-        if city_orm is None:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Город '{hotel.city}' не найден"
-            )
+        city_id = await validate_city_by_name(db, hotel.city)
         
         # Проверяем уникальность title, если он изменяется
         if hotel.title != existing_hotel.title:
@@ -287,7 +274,7 @@ async def update_hotel(
             updated_hotel = await hotels_repo.edit(
                 id=hotel_id,
                 title=hotel.title,
-                city_id=city_orm.id,
+                city_id=city_id,
                 address=hotel.address,
                 postal_code=hotel.postal_code,
                 check_in_time=hotel.check_in_time,
@@ -300,7 +287,7 @@ async def update_hotel(
             raise HTTPException(status_code=404, detail="Отель не найден")
     
     # Инвалидируем кэш отелей
-    await FastAPICache.clear(namespace="hotels")
+    await invalidate_cache("hotels")
     
     return MessageResponse(status="OK")
 
@@ -366,15 +353,9 @@ async def partial_update_hotel(
         
         # Если передан city, валидируем его существование (без учета регистра)
         if "city" in update_data:
-            cities_repo = DBManager.get_cities_repository(db)
-            city_orm = await cities_repo.get_by_name_case_insensitive(update_data["city"])
-            if city_orm is None:
-                raise HTTPException(
-                    status_code=404,
-                    detail=f"Город '{update_data['city']}' не найден"
-                )
+            city_id = await validate_city_by_name(db, update_data["city"])
             # Заменяем city на city_id для сохранения в БД
-            update_data["city_id"] = city_orm.id
+            update_data["city_id"] = city_id
             del update_data["city"]
         
         # Проверяем уникальность title, если он изменяется
@@ -389,7 +370,7 @@ async def partial_update_hotel(
             await hotels_repo.update(id=hotel_id, **update_data)
     
     # Инвалидируем кэш отелей
-    await FastAPICache.clear(namespace="hotels")
+    await invalidate_cache("hotels")
     
     return MessageResponse(status="OK")
 
@@ -410,16 +391,10 @@ async def delete_hotel(hotel_id: int, db: DBDep) -> MessageResponse:
     """
     async with DBManager.transaction(db):
         repo = DBManager.get_hotels_repository(db)
-        try:
-            deleted = await repo.delete(hotel_id)
-        except ValueError as e:
-            raise HTTPException(status_code=400, detail=str(e))
-        
-        if not deleted:
-            raise HTTPException(status_code=404, detail="Отель не найден")
+        await handle_delete_operation(repo.delete, hotel_id, "Отель")
     
     # Инвалидируем кэш отелей и номеров (номера удаляются каскадно)
-    await FastAPICache.clear(namespace="hotels")
-    await FastAPICache.clear(namespace="rooms")
+    await invalidate_cache("hotels")
+    await invalidate_cache("rooms")
     
     return MessageResponse(status="OK")

@@ -21,14 +21,20 @@ from src.api import (
 from src.config import settings
 from src.db import check_connection, close_engine
 from src import redis_manager
+from src.utils.logger import setup_logging, get_logger
+
+# Инициализируем логирование ДО создания приложения, чтобы все логи попадали в файл
+setup_logging()
+logger = get_logger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan события для FastAPI - выполняется при старте и остановке приложения."""
+    
     # Создание и применение миграций к тестовой БД при запуске в режиме local
     if settings.DB_NAME == "booking":
-        print("🔧 Проверка и создание тестовой БД...")
+        logger.info("Проверка и создание тестовой БД...")
         try:
             import psycopg2
             # Подключаемся к postgres БД для создания test БД
@@ -47,17 +53,17 @@ async def lifespan(app: FastAPI):
             exists = cursor.fetchone()
             
             if not exists:
-                print("📦 Создание тестовой БД...")
+                logger.info("Создание тестовой БД...")
                 cursor.execute('CREATE DATABASE test')
-                print("✅ Тестовая БД создана!")
+                logger.info("Тестовая БД создана!")
             else:
-                print("✅ Тестовая БД уже существует")
+                logger.info("Тестовая БД уже существует")
             
             cursor.close()
             conn.close()
             
             # Применяем миграции к тестовой БД
-            print("🔧 Применение миграций к тестовой БД...")
+            logger.info("Применение миграций к тестовой БД...")
             from alembic.config import Config
             from alembic import command
             
@@ -67,17 +73,17 @@ async def lifespan(app: FastAPI):
                 test_db_url = f"postgresql://{settings.DB_USERNAME}:{settings.DB_PASSWORD}@{settings.DB_HOST}:{settings.DB_PORT}/test"
                 alembic_cfg.set_main_option("sqlalchemy.url", test_db_url)
                 command.upgrade(alembic_cfg, "head")
-                print("✅ Миграции применены к тестовой БД!")
+                logger.info("Миграции применены к тестовой БД!")
             else:
-                print("⚠️ Файл alembic.ini не найден, миграции не применены")
+                logger.warning("Файл alembic.ini не найден, миграции не применены")
         except Exception as e:
-            print(f"⚠️ Ошибка при работе с тестовой БД: {e}")
+            logger.error(f"Ошибка при работе с тестовой БД: {e}", exc_info=True)
     
     # Применяем миграции для тестовой БД, если DB_NAME=test
     # Примечание: Очистка БД выполняется в conftest.py через drop_all/create_all,
     # поэтому здесь только применяем миграции для создания структуры таблиц
     if settings.DB_NAME == "test":
-        print("🔧 Применение миграций к тестовой БД...")
+        logger.info("Применение миграций к тестовой БД...")
         try:
             from alembic.config import Config
             from alembic import command
@@ -94,40 +100,40 @@ async def lifespan(app: FastAPI):
                 # Пытаемся применить миграции
                 try:
                     command.upgrade(alembic_cfg, "head")
-                    print("✅ Миграции применены к тестовой БД!")
+                    logger.info("Миграции применены к тестовой БД!")
                 except Exception as migration_error:
                     # Если миграции уже применены (таблицы существуют), помечаем их как примененные
                     error_str = str(migration_error)
                     if "already exists" in error_str or "DuplicateTable" in error_str:
-                        print("⚠️ Таблицы уже существуют, помечаем миграции как примененные...")
+                        logger.warning("Таблицы уже существуют, помечаем миграции как примененные...")
                         command.stamp(alembic_cfg, "head")
-                        print("✅ Миграции помечены как примененные!")
+                        logger.info("Миграции помечены как примененные!")
                     else:
                         raise migration_error
             else:
-                print("⚠️ Файл alembic.ini не найден, миграции не применены")
+                logger.warning("Файл alembic.ini не найден, миграции не применены")
         except Exception as e:
-            print(f"⚠️ Ошибка при применении миграций: {e}")
+            logger.error(f"Ошибка при применении миграций: {e}", exc_info=True)
     
     # Startup: проверка подключения к БД и Redis
-    print("🔍 Проверка подключения к базе данных...")
+    logger.info("Проверка подключения к базе данных...")
     try:
         await check_connection()
-        print("✅ Подключение к базе данных успешно установлено!")
+        logger.info("Подключение к базе данных успешно установлено!")
     except Exception as e:
-        print(f"❌ Ошибка подключения к базе данных: {e}")
+        logger.error(f"Ошибка подключения к базе данных: {e}", exc_info=True)
         raise
     
-    print("🔍 Проверка подключения к Redis...")
+    logger.info("Проверка подключения к Redis...")
     try:
         await redis_manager.connect()
         is_connected = await redis_manager.check_connection()
         if is_connected:
-            print("✅ Подключение к Redis успешно установлено!")
+            logger.info("Подключение к Redis успешно установлено!")
         else:
             raise Exception("Redis не отвечает на ping")
     except Exception as e:
-        print(f"❌ Ошибка подключения к Redis: {e}")
+        logger.error(f"Ошибка подключения к Redis: {e}", exc_info=True)
         raise
     
     # Инициализация FastAPI Cache с Redis
@@ -140,7 +146,7 @@ async def lifespan(app: FastAPI):
         decode_responses=True
     )
     FastAPICache.init(RedisBackend(redis_cache_client), prefix="fastapi-cache")
-    print("✅ FastAPI Cache инициализирован с Redis!")
+    logger.info("FastAPI Cache инициализирован с Redis!")
     
     # Очистка старых временных файлов при старте
     temp_dir = Path(__file__).resolve().parent.parent / "static" / "temp"
@@ -157,24 +163,24 @@ async def lifespan(app: FastAPI):
                 except Exception:
                     pass
         if cleaned_count > 0:
-            print(f"🧹 Очищено {cleaned_count} старых временных файлов при старте")
+            logger.info(f"Очищено {cleaned_count} старых временных файлов при старте")
     
     yield  # Приложение работает
     
     # Shutdown: закрытие соединений
-    print("👋 Закрытие соединений с базой данных...")
+    logger.info("Закрытие соединений с базой данных...")
     try:
         await close_engine()
-        print("✅ Соединение с базой данных закрыто")
+        logger.info("Соединение с базой данных закрыто")
     except Exception as e:
-        print(f"⚠️ Ошибка при закрытии соединения с базой данных: {e}")
+        logger.warning(f"Ошибка при закрытии соединения с базой данных: {e}", exc_info=True)
     
-    print("👋 Закрытие соединений с Redis...")
+    logger.info("Закрытие соединений с Redis...")
     try:
         await redis_manager.close()
-        print("✅ Соединение с Redis закрыто")
+        logger.info("Соединение с Redis закрыто")
     except Exception as e:
-        print(f"⚠️ Ошибка при закрытии соединения с Redis: {e}")
+        logger.warning(f"Ошибка при закрытии соединения с Redis: {e}", exc_info=True)
 
 
 app = FastAPI(lifespan=lifespan)

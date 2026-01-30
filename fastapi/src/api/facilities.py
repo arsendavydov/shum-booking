@@ -6,8 +6,6 @@ from src.schemas.facilities import Facility, SchemaFacility
 from src.schemas import MessageResponse
 from src.api import PaginationDep, DBDep, get_or_404
 from src.utils.db_manager import DBManager
-from src.config import settings
-
 # Время жизни кэша для facilities (явно задано)
 # Если не задать expire в декораторе @cache, будет использоваться значение по умолчанию библиотеки (обычно None - кэш не истекает)
 FACILITIES_CACHE_TTL = 300 
@@ -18,10 +16,10 @@ router = APIRouter()
 @router.get(
     "",
     summary="Получить список удобств",
-    description="Возвращает список всех удобств с поддержкой пагинации. Поддерживает фильтрацию по title (частичное совпадение, без учета регистра). Результаты кэшируются в Redis на 600 секунд (10 минут).",
+    description="Возвращает список всех удобств с поддержкой пагинации. Поддерживает фильтрацию по title (частичное совпадение, без учета регистра). Результаты кэшируются в Redis на 300 секунд (5 минут).",
     response_model=List[SchemaFacility]
 )
-@cache(expire=FACILITIES_CACHE_TTL, namespace="facilities")  # Время жизни кэша: 600 секунд (10 минут) - явно задано
+@cache(expire=FACILITIES_CACHE_TTL, namespace="facilities")  # Время жизни кэша: 300 секунд (5 минут) - явно задано
 async def get_facilities(
     pagination: PaginationDep,
     db: DBDep,

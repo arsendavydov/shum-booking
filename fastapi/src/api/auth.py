@@ -195,34 +195,41 @@ async def get_current_user_info(
 @router.post(
     "/logout",
     summary="Выход пользователя",
-    description="Выходит из системы, удаляя JWT токен из cookie. Токен становится недействительным на клиенте, но остается валидным до истечения срока действия.",
+    description="Выходит из системы, удаляя JWT токен из cookie. Требуется аутентификация через JWT токен. Токен становится недействительным на клиенте, но остается валидным до истечения срока действия.",
     response_model=dict
 )
 async def logout_user(
     response: Response,
-    auth_service: AuthServiceDep
+    current_user: CurrentUserDep
 ) -> dict:
     """
     Выйти из системы.
     
     Удаляет JWT токен из HTTP-only cookie.
+    Требуется валидный JWT токен для подтверждения, что пользователь действительно авторизован.
+    
     Примечание: JWT токены являются stateless, поэтому сервер не может
     инвалидировать токен на сервере. Токен останется технически валидным
     до истечения срока действия, но клиент больше не будет его использовать.
     
     Args:
         response: FastAPI Response объект для установки cookie
+        current_user: Текущий авторизованный пользователь (из JWT токена)
         
     Returns:
         Словарь со статусом операции {"status": "OK"}
+        
+    Raises:
+        HTTPException: 401 если пользователь не аутентифицирован
     """
     # Удаляем токен из cookie
     # Используем те же параметры, что и при установке cookie
+    from src.config import settings
     response.delete_cookie(
         key="access_token",
         path="/",
         httponly=True,
-        secure=auth_service.cookie_secure,  # Используем то же значение, что и при установке
+        secure=settings.JWT_COOKIE_SECURE,  # Используем то же значение, что и при установке
         samesite="lax"
     )
     

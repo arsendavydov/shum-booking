@@ -4,10 +4,10 @@ import time
 
 @pytest.mark.countries
 class TestCountries:
-    """Тесты для эндпоинтов стран"""
+    """Эндпоинты стран"""
     
     def test_get_all_countries(self, client):
-        """Тест получения списка всех стран"""
+        """Получение всех стран"""
         response = client.get("/countries")
         assert response.status_code == 200
         data = response.json()
@@ -15,7 +15,7 @@ class TestCountries:
         assert len(data) <= 10
     
     def test_get_country_by_id(self, client, test_prefix):
-        """Тест получения страны по ID"""
+        """Получение страны по ID"""
         unique_name = f"{test_prefix} Тестовая Страна {int(time.time())}"
         country_data = {"name": unique_name, "iso_code": "TS"}
         create_response = client.post("/countries", json=country_data)
@@ -37,13 +37,13 @@ class TestCountries:
                 client.delete(f"/countries/{country_id}")
     
     def test_get_country_by_id_nonexistent(self, client):
-        """Тест получения несуществующей страны по ID"""
+        """Получение несуществующей страны по ID"""
         response = client.get("/countries/99999")
         assert response.status_code == 404
         assert "не найд" in response.json()["detail"].lower()
     
     def test_create_country(self, client, test_prefix):
-        """Тест создания страны"""
+        """Создание страны"""
         unique_name = f"{test_prefix} Новая Страна {int(time.time())}"
         # ISO код должен быть ровно 2 символа
         unique_iso = f"T{int(time.time()) % 10:01d}"
@@ -58,7 +58,7 @@ class TestCountries:
             client.delete(f"/countries/{country_id}")
     
     def test_create_country_duplicate_name(self, client, test_prefix):
-        """Тест создания страны с дублирующимся названием"""
+        """Создание страны с дублирующимся названием"""
         unique_name = f"{test_prefix} Дубликат {int(time.time())}"
         country_data = {"name": unique_name, "iso_code": "D1"}
         create_response = client.post("/countries", json=country_data)
@@ -74,7 +74,7 @@ class TestCountries:
             client.delete(f"/countries/{country_id}")
     
     def test_create_country_duplicate_iso_code(self, client, test_prefix):
-        """Тест создания страны с дублирующимся ISO кодом"""
+        """Создание страны с дублирующимся ISO кодом"""
         unique_name1 = f"{test_prefix} Страна 1 {int(time.time())}"
         unique_name2 = f"{test_prefix} Страна 2 {int(time.time())}"
         # ISO код должен быть ровно 2 символа
@@ -93,7 +93,7 @@ class TestCountries:
             client.delete(f"/countries/{country_id}")
     
     def test_update_country(self, client, test_prefix):
-        """Тест обновления страны"""
+        """Обновление страны"""
         unique_name = f"{test_prefix} Обновляемая {int(time.time())}"
         country_data = {"name": unique_name, "iso_code": "UP"}
         create_response = client.post("/countries", json=country_data)
@@ -118,7 +118,7 @@ class TestCountries:
             client.delete(f"/countries/{country_id}")
     
     def test_update_nonexistent_country(self, client):
-        """Тест обновления несуществующей страны"""
+        """Обновление несуществующей страны"""
         response = client.put(
             "/countries/99999",
             json={"name": "Тест", "iso_code": "TT"}
@@ -126,7 +126,7 @@ class TestCountries:
         assert response.status_code == 404
     
     def test_partial_update_country(self, client, test_prefix):
-        """Тест частичного обновления страны"""
+        """Частичное обновление страны"""
         unique_name = f"{test_prefix} Частично {int(time.time())}"
         country_data = {"name": unique_name, "iso_code": "PA"}
         create_response = client.post("/countries", json=country_data)
@@ -151,7 +151,7 @@ class TestCountries:
             client.delete(f"/countries/{country_id}")
     
     def test_partial_update_nonexistent_country(self, client):
-        """Тест частичного обновления несуществующей страны"""
+        """Частичное обновление несуществующей страны"""
         response = client.patch(
             "/countries/99999",
             json={"name": "Test"}
@@ -159,7 +159,7 @@ class TestCountries:
         assert response.status_code == 404
     
     def test_delete_country(self, client, test_prefix):
-        """Тест удаления страны"""
+        """Удаление страны"""
         unique_name = f"{test_prefix} Для удаления {int(time.time())}"
         country_data = {"name": unique_name, "iso_code": "DL"}
         create_response = client.post("/countries", json=country_data)
@@ -177,12 +177,12 @@ class TestCountries:
             assert get_response.status_code == 404
     
     def test_delete_nonexistent_country(self, client):
-        """Тест удаления несуществующей страны"""
+        """Удаление несуществующей страны"""
         response = client.delete("/countries/99999")
         assert response.status_code == 404
     
     def test_filter_countries_by_name(self, client, test_prefix):
-        """Тест фильтрации стран по названию"""
+        """Фильтрация стран по названию"""
         unique_name = f"{test_prefix} Фильтр Тест {int(time.time())}"
         country_data = {"name": unique_name, "iso_code": "FT"}
         create_response = client.post("/countries", json=country_data)
@@ -202,7 +202,7 @@ class TestCountries:
             client.delete(f"/countries/{country_id}")
     
     def test_countries_pagination(self, client):
-        """Тест пагинации для стран"""
+        """Пагинация стран"""
         response = client.get("/countries?page=1&per_page=3")
         assert response.status_code == 200
         data = response.json()

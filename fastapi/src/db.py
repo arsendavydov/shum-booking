@@ -1,6 +1,9 @@
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy import text
 from src.config import settings
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 # Ленивая инициализация engine - создается только при первом использовании
 _engine = None
@@ -28,7 +31,8 @@ async def check_connection():
     async with _get_engine().begin() as conn:
         res = await conn.execute(text("SELECT version()"))
         result = res.fetchone()
-        print(f"PostgreSQL version: {result[0] if result else 'Unknown'}")
+        if result:
+            logger.debug(f"PostgreSQL version: {result[0]}")
         return result
 
 

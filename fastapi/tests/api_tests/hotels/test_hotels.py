@@ -4,10 +4,10 @@ from datetime import date, timedelta
 
 @pytest.mark.hotels
 class TestHotels:
-    """Тесты для эндпоинтов отелей"""
+    """Эндпоинты отелей"""
     
     def test_get_hotel_by_id(self, client, created_hotel_ids):
-        """Тест получения отеля по ID - успешный случай"""
+        """Получение отеля по ID"""
         if not created_hotel_ids:
             return
         
@@ -29,7 +29,7 @@ class TestHotels:
         assert data["id"] == hotel_id
     
     def test_get_hotel_by_id_nonexistent(self, client):
-        """Тест получения несуществующего отеля по ID - должен вернуть 404"""
+        """Получение несуществующего отеля"""
         response = client.get("/hotels/99999")
         assert response.status_code == 404
         data = response.json()
@@ -37,12 +37,12 @@ class TestHotels:
         assert "не найден" in data["detail"].lower() or "not found" in data["detail"].lower()
     
     def test_get_hotel_by_id_invalid(self, client):
-        """Тест получения отеля с невалидным ID - должен вернуть 422"""
+        """Получение отеля с невалидным ID"""
         response = client.get("/hotels/invalid_id")
         assert response.status_code == 422
     
     def test_create_hotel(self, client, test_prefix, created_hotel_ids):
-        """Тест создания отеля"""
+        """Создание отеля"""
         response = client.post(
             "/hotels",
             json={"title": f"{test_prefix} Тестовый Отель", "city": "Москва", "address": f"{test_prefix} Тестовая улица, 1", "postal_code": "101000"}
@@ -62,7 +62,7 @@ class TestHotels:
             created_hotel_ids.append(test_hotel_id)
     
     def test_create_hotel_missing_title(self, client):
-        """Тест создания отеля без title"""
+        """Создание отеля без title"""
         response = client.post(
             "/hotels",
             json={"city": "Москва", "address": "Тестовая улица, 1"}
@@ -70,7 +70,7 @@ class TestHotels:
         assert response.status_code == 422
     
     def test_create_hotel_missing_city(self, client):
-        """Тест создания отеля без city"""
+        """Создание отеля без city"""
         response = client.post(
             "/hotels",
             json={"title": "Тест Отель", "address": "Тестовая улица, 1"}
@@ -78,7 +78,7 @@ class TestHotels:
         assert response.status_code == 422
     
     def test_create_hotel_missing_address(self, client):
-        """Тест создания отеля без address"""
+        """Создание отеля без address"""
         response = client.post(
             "/hotels",
             json={"title": "Тест Отель", "city": "Москва"}
@@ -86,7 +86,7 @@ class TestHotels:
         assert response.status_code == 422
     
     def test_create_hotel_invalid_city(self, client):
-        """Тест создания отеля с несуществующим городом"""
+        """Создание отеля с несуществующим городом"""
         response = client.post(
             "/hotels",
             json={"title": "Тест Отель", "city": "НесуществующийГород", "address": "Тестовая улица, 1"}
@@ -95,12 +95,12 @@ class TestHotels:
         assert "не найден" in response.json()["detail"]
     
     def test_create_hotel_empty_body(self, client):
-        """Тест создания отеля с пустым body"""
+        """Создание отеля с пустым body"""
         response = client.post("/hotels", json={})
         assert response.status_code == 422
     
     def test_update_hotel(self, client, created_hotel_ids):
-        """Тест полного обновления отеля"""
+        """Обновление отеля"""
         if not created_hotel_ids:
             return
         
@@ -113,7 +113,7 @@ class TestHotels:
         assert response.json() == {"status": "OK"}
     
     def test_update_hotel_missing_title(self, client, created_hotel_ids):
-        """Тест обновления отеля без title"""
+        """Обновление отеля без title"""
         if not created_hotel_ids:
             return
         
@@ -125,7 +125,7 @@ class TestHotels:
         assert response.status_code == 422
     
     def test_update_hotel_missing_city(self, client, created_hotel_ids):
-        """Тест обновления отеля без city"""
+        """Обновление отеля без city"""
         if not created_hotel_ids:
             return
         
@@ -137,7 +137,7 @@ class TestHotels:
         assert response.status_code == 422
     
     def test_update_hotel_missing_address(self, client, created_hotel_ids):
-        """Тест обновления отеля без address"""
+        """Обновление отеля без address"""
         if not created_hotel_ids:
             return
         
@@ -149,7 +149,7 @@ class TestHotels:
         assert response.status_code == 422
     
     def test_update_nonexistent_hotel(self, client):
-        """Тест обновления несуществующего отеля"""
+        """Обновление несуществующего отеля"""
         response = client.put(
             "/hotels/99999",
             json={"title": "Test", "city": "Москва", "address": "Test address", "postal_code": "101002"}
@@ -158,7 +158,7 @@ class TestHotels:
         assert "не найден" in response.json()["detail"]
     
     def test_update_hotel_invalid_city(self, client, created_hotel_ids):
-        """Тест обновления отеля с несуществующим городом"""
+        """Обновление отеля с несуществующим городом"""
         if not created_hotel_ids:
             return
         
@@ -171,7 +171,7 @@ class TestHotels:
         assert "не найден" in response.json()["detail"]
     
     def test_partial_update_hotel_title(self, client, created_hotel_ids):
-        """Тест частичного обновления title отеля"""
+        """Частичное обновление title отеля"""
         if len(created_hotel_ids) <= 1:
             return
         
@@ -184,7 +184,7 @@ class TestHotels:
         assert response.json() == {"status": "OK"}
     
     def test_partial_update_hotel_address(self, client, created_hotel_ids):
-        """Тест частичного обновления address отеля"""
+        """Частичное обновление address отеля"""
         if len(created_hotel_ids) <= 1:
             return
         
@@ -197,7 +197,7 @@ class TestHotels:
         assert response.json() == {"status": "OK"}
     
     def test_partial_update_hotel_postal_code(self, client, created_hotel_ids):
-        """Тест частичного обновления postal_code отеля"""
+        """Частичное обновление postal_code отеля"""
         if len(created_hotel_ids) <= 1:
             return
         
@@ -214,7 +214,7 @@ class TestHotels:
         assert get_response.json()["postal_code"] == "101004"
     
     def test_partial_update_hotel_city(self, client, created_hotel_ids):
-        """Тест частичного обновления city отеля"""
+        """Частичное обновление city отеля"""
         if len(created_hotel_ids) <= 1:
             return
         
@@ -227,7 +227,7 @@ class TestHotels:
         assert response.json() == {"status": "OK"}
     
     def test_partial_update_hotel_both_fields(self, client, created_hotel_ids):
-        """Тест частичного обновления нескольких полей отеля"""
+        """Частичное обновление нескольких полей отеля"""
         if len(created_hotel_ids) <= 2:
             return
         
@@ -240,7 +240,7 @@ class TestHotels:
         assert response.json() == {"status": "OK"}
     
     def test_partial_update_hotel_invalid_city(self, client, created_hotel_ids):
-        """Тест частичного обновления отеля с несуществующим городом"""
+        """Частичное обновление отеля с несуществующим городом"""
         if len(created_hotel_ids) <= 1:
             return
         
@@ -253,7 +253,7 @@ class TestHotels:
         assert "не найден" in response.json()["detail"]
     
     def test_partial_update_hotel_empty_body(self, client, created_hotel_ids):
-        """Тест частичного обновления отеля с пустым body"""
+        """Частичное обновление отеля с пустым body"""
         if len(created_hotel_ids) <= 1:
             return
         
@@ -263,13 +263,13 @@ class TestHotels:
         assert response.json() == {"status": "OK"}
     
     def test_partial_update_nonexistent_hotel(self, client):
-        """Тест частичного обновления несуществующего отеля"""
+        """Частичное обновление несуществующего отеля"""
         response = client.patch("/hotels/99999", json={"title": "Test"})
         assert response.status_code == 404
         assert "не найден" in response.json()["detail"]
     
     def test_delete_hotel(self, client, created_hotel_ids):
-        """Тест удаления отеля"""
+        """Удаление отеля"""
         if not created_hotel_ids:
             return
         
@@ -280,7 +280,7 @@ class TestHotels:
         created_hotel_ids.remove(hotel_id)
     
     def test_delete_nonexistent_hotel(self, client):
-        """Тест удаления несуществующего отеля"""
+        """Удаление несуществующего отеля"""
         response = client.delete("/hotels/99999")
         assert response.status_code == 404
         assert "не найден" in response.json()["detail"]

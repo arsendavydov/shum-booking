@@ -4,10 +4,10 @@ from datetime import date, timedelta
 
 @pytest.mark.rooms
 class TestRooms:
-    """Тесты для эндпоинтов номеров"""
+    """Эндпоинты номеров"""
     
     def test_get_all_rooms(self, client, created_hotel_ids):
-        """Тест получения всех номеров отеля"""
+        """Получение всех номеров отеля"""
         if not created_hotel_ids:
             return
         
@@ -18,7 +18,7 @@ class TestRooms:
         assert isinstance(data, list)
     
     def test_get_room_by_id(self, client, created_hotel_ids):
-        """Тест получения номера по ID"""
+        """Получение номера по ID"""
         if not created_hotel_ids:
             return
         
@@ -38,7 +38,7 @@ class TestRooms:
                 assert data["hotel_id"] == hotel_id
     
     def test_get_room_by_id_nonexistent(self, client, created_hotel_ids):
-        """Тест получения несуществующего номера по ID"""
+        """Получение несуществующего номера по ID"""
         if not created_hotel_ids:
             return
         
@@ -48,7 +48,7 @@ class TestRooms:
         assert "не найд" in response.json()["detail"]
     
     def test_get_rooms_by_hotel_id(self, client, created_hotel_ids):
-        """Тест получения номеров по hotel_id"""
+        """Получение номеров по hotel_id"""
         if not created_hotel_ids:
             return
         
@@ -61,7 +61,7 @@ class TestRooms:
             assert room["hotel_id"] == hotel_id
     
     def test_get_rooms_by_title(self, client, created_hotel_ids, test_prefix):
-        """Тест получения номеров по title"""
+        """Получение номеров по title"""
         if not created_hotel_ids:
             return
         
@@ -72,7 +72,7 @@ class TestRooms:
         assert isinstance(data, list)
     
     def test_create_room(self, client, created_hotel_ids, created_room_ids, test_prefix):
-        """Тест создания номера"""
+        """Создание номера"""
         if not created_hotel_ids:
             return
         
@@ -94,7 +94,7 @@ class TestRooms:
             created_room_ids.append(get_response.json()[0]["id"])
     
     def test_create_room_missing_fields(self, client, created_hotel_ids, test_prefix):
-        """Тест создания номера с неполными данными"""
+        """Создание номера с неполными данными"""
         if not created_hotel_ids:
             return
         
@@ -106,7 +106,7 @@ class TestRooms:
         assert response.status_code == 422
     
     def test_update_room(self, client, created_hotel_ids, test_prefix):
-        """Тест обновления номера"""
+        """Обновление номера"""
         if not created_hotel_ids:
             return
         
@@ -129,7 +129,7 @@ class TestRooms:
                 assert response.json() == {"status": "OK"}
     
     def test_update_nonexistent_room(self, client, created_hotel_ids, test_prefix):
-        """Тест обновления несуществующего номера"""
+        """Обновление несуществующего номера"""
         if not created_hotel_ids:
             return
         
@@ -145,7 +145,7 @@ class TestRooms:
         assert response.status_code == 404
     
     def test_partial_update_room(self, client, created_hotel_ids, test_prefix):
-        """Тест частичного обновления номера"""
+        """Частичное обновление номера"""
         if not created_hotel_ids:
             return
         
@@ -163,7 +163,7 @@ class TestRooms:
                 assert response.json() == {"status": "OK"}
     
     def test_partial_update_nonexistent_room(self, client, created_hotel_ids, test_prefix):
-        """Тест частичного обновления несуществующего номера"""
+        """Частичное обновление несуществующего номера"""
         if not created_hotel_ids:
             return
         
@@ -175,7 +175,7 @@ class TestRooms:
         assert response.status_code == 404
     
     def test_delete_room(self, client, created_hotel_ids, created_room_ids):
-        """Тест удаления номера"""
+        """Удаление номера"""
         if not created_room_ids or not created_hotel_ids:
             return
         
@@ -187,7 +187,7 @@ class TestRooms:
         created_room_ids.remove(room_id)
     
     def test_delete_nonexistent_room(self, client, created_hotel_ids):
-        """Тест удаления несуществующего номера"""
+        """Удаление несуществующего номера"""
         if not created_hotel_ids:
             return
         
@@ -196,7 +196,7 @@ class TestRooms:
         assert response.status_code == 404
     
     def test_get_available_rooms(self, client, created_hotel_ids):
-        """Тест получения доступных номеров на период"""
+        """Получение доступных номеров на период"""
         if not created_hotel_ids:
             return
         

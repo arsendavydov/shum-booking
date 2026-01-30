@@ -1,4 +1,5 @@
 from celery import Task
+from celery.utils.log import get_task_logger
 from PIL import Image
 import os
 import asyncio
@@ -8,6 +9,9 @@ from sqlalchemy.orm import sessionmaker
 
 # Импортируем celery_app - он должен быть инициализирован до импорта tasks
 from src.tasks.celery_app import celery_app
+
+# Получаем logger для Celery задач
+logger = get_task_logger(__name__)
 
 # Импортируем все модели для правильной инициализации SQLAlchemy relationships
 from src.models import ImagesOrm, hotels_images, HotelsOrm, CitiesOrm, CountriesOrm
@@ -112,11 +116,11 @@ def process_image(self: Task, hotel_id: int, original_filename: str, temp_file_p
         if os.path.exists(temp_file_path):
             os.remove(temp_file_path)
         
-        import traceback
-        traceback.print_exc()
+        # Логируем ошибку
+        logger.error(f"Ошибка при обработке изображения: {e}", exc_info=True)
         return {
             'status': 'error',
-            'message': f'Ошибка при обработке изображения: {str(e)}'
+            'message': 'Ошибка при обработке изображения'
         }
 
 
@@ -127,7 +131,7 @@ def _create_image_in_db_sync(hotel_id: int, original_filename: str, width: int, 
         # Проверяем существование отеля
         hotel = session.query(HotelsOrm).filter(HotelsOrm.id == hotel_id).first()
         if hotel is None:
-            print(f"Отель с ID {hotel_id} не найден в БД")
+            logger.warning("Отель не найден в БД")
             return None
         
         # Создаем запись изображения
@@ -144,13 +148,11 @@ def _create_image_in_db_sync(hotel_id: int, original_filename: str, width: int, 
         image.hotels.append(hotel)
         session.commit()
         
-        print(f"Создано изображение с ID {image.id} для отеля {hotel_id}")
+        # Не логируем ID для безопасности
         return image.id
     except Exception as e:
         session.rollback()
-        import traceback
-        print(f"Ошибка при создании записи в БД: {e}")
-        traceback.print_exc()
+        logger.error(f"Ошибка при создании записи изображения в БД: {e}", exc_info=True)
         return None
     finally:
         session.close()

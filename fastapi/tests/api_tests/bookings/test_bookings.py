@@ -7,13 +7,13 @@ from tests.api_tests import TEST_PASSWORD, TEST_EXAMPLE_EMAIL_DOMAIN
 
 @pytest.mark.bookings
 class TestBookings:
-    """Тесты для эндпоинтов бронирований"""
+    """Эндпоинты бронирований"""
     
     def test_create_booking(
         self, client, created_hotel_ids, created_user_ids, 
         created_booking_ids, created_booking_user_map, test_prefix
     ):
-        """Тест создания бронирования"""
+        """Создание бронирования"""
         if not created_hotel_ids:
             return
         
@@ -72,7 +72,7 @@ class TestBookings:
     def test_create_booking_invalid_dates(
         self, client, created_hotel_ids, created_user_ids, test_prefix
     ):
-        """Тест создания бронирования с некорректными датами"""
+        """Создание бронирования с некорректными датами"""
         if not created_hotel_ids:
             return
         
@@ -118,7 +118,7 @@ class TestBookings:
     def test_create_booking_nonexistent_room(
         self, client, created_user_ids, test_prefix
     ):
-        """Тест создания бронирования с несуществующим номером"""
+        """Создание бронирования с несуществующим номером"""
         unique_email = f"{test_prefix}_booking_nonexistent_room_{int(time.time() * 1000)}@{TEST_EXAMPLE_EMAIL_DOMAIN}"
         register_response = client.post(
             "/auth/register",
@@ -155,7 +155,7 @@ class TestBookings:
         assert "номер не найден" in response.json()["detail"].lower()
     
     def test_create_booking_unauthorized(self, client, created_hotel_ids):
-        """Тест создания бронирования без аутентификации"""
+        """Создание бронирования без аутентификации"""
         if not created_hotel_ids:
             return
         
@@ -184,7 +184,7 @@ class TestBookings:
         test_client.close()
     
     def test_get_all_bookings(self, client):
-        """Тест получения всех бронирований"""
+        """Получение всех бронирований"""
         response = client.get("/bookings")
         assert response.status_code == 200
         data = response.json()
@@ -194,7 +194,7 @@ class TestBookings:
         self, client, created_hotel_ids, created_user_ids, 
         created_booking_ids, created_booking_user_map, test_prefix
     ):
-        """Тест получения своих бронирований"""
+        """Получение своих бронирований"""
         if not created_hotel_ids:
             return
         
@@ -253,7 +253,7 @@ class TestBookings:
                 break
     
     def test_get_my_bookings_unauthorized(self, client):
-        """Тест получения своих бронирований без аутентификации"""
+        """Получение своих бронирований без аутентификации"""
         test_client = httpx.Client(base_url="http://localhost:8000", timeout=10.0)
         response = test_client.get("/bookings/me")
         assert response.status_code == 401
@@ -262,7 +262,7 @@ class TestBookings:
     def test_delete_booking_nonexistent(
         self, client, created_user_ids, test_prefix
     ):
-        """Тест удаления несуществующего бронирования"""
+        """Удаление несуществующего бронирования"""
         unique_email = f"{test_prefix}_delete_nonexistent_{int(time.time() * 1000)}@{TEST_EXAMPLE_EMAIL_DOMAIN}"
         register_response = client.post(
             "/auth/register",

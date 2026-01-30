@@ -1,5 +1,11 @@
 from celery import Celery
 import os
+from src.utils.logger import setup_logging
+
+# Инициализируем логирование для Celery
+# Используем LOG_LEVEL из переменных окружения
+log_level = os.getenv('LOG_LEVEL', 'INFO')
+setup_logging(log_level=log_level)
 
 # Получаем настройки Redis из переменных окружения напрямую
 # Не импортируем settings, чтобы избежать ошибок валидации JWT настроек

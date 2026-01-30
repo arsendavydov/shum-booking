@@ -50,6 +50,35 @@ config.set_main_option("sqlalchemy.url", db_url)
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
+# Переопределяем логирование Alembic, чтобы использовать нашу систему логирования
+# Это нужно, чтобы логи Alembic попадали в наш файл логов
+try:
+    from src.utils.logger import setup_logging
+    import logging
+    
+    # Настраиваем логирование (если еще не настроено)
+    setup_logging()
+    
+    # Убеждаемся, что логгеры Alembic используют нашу систему
+    # Очищаем handlers, созданные fileConfig, и устанавливаем propagate=True
+    alembic_logger = logging.getLogger("alembic")
+    alembic_logger.handlers.clear()
+    alembic_logger.propagate = True
+    
+    alembic_runtime_logger = logging.getLogger("alembic.runtime.migration")
+    alembic_runtime_logger.handlers.clear()
+    alembic_runtime_logger.propagate = True
+    
+    # Также настраиваем все подлоггеры alembic
+    for logger_name in logging.Logger.manager.loggerDict:
+        if logger_name.startswith("alembic"):
+            logger = logging.getLogger(logger_name)
+            logger.handlers.clear()
+            logger.propagate = True
+except Exception:
+    # Если не удалось импортировать setup_logging, используем стандартное логирование Alembic
+    pass
+
 # add your model's MetaData object here
 # for 'autogenerate' support
 # from myapp import mymodel

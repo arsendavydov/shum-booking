@@ -24,7 +24,6 @@ TEST_EXAMPLE_EMAIL_DOMAIN = os.getenv("TEST_EXAMPLE_EMAIL_DOMAIN", "shum-booking
 if not TEST_PASSWORD:
     raise ValueError(
         "Переменная окружения TEST_PASSWORD должна быть установлена в .test.env файле. "
-        "Этот пароль используется для создания тестовых пользователей во время тестов."
     )
 
 
@@ -86,6 +85,20 @@ def client():
 def test_prefix():
     """Префикс для тестовых данных"""
     return TEST_PREFIX
+
+
+@pytest.fixture(scope="session", autouse=True)
+def check_test_environment():
+    """Проверяет, что тесты запускаются в тестовом окружении (DB_NAME=test)"""
+    db_name = os.getenv("DB_NAME")
+    if db_name != "test":
+        raise ValueError(
+            f"❌ КРИТИЧЕСКАЯ ОШИБКА: Тесты должны запускаться только с DB_NAME=test!\n"
+            f"   Текущее значение DB_NAME: {db_name}\n"
+            f"   Запуск тестов против продакшн или другой БД запрещен из соображений безопасности.\n"
+            f"   Убедитесь, что используете .test.env файл или установили DB_NAME=test в переменных окружения."
+        )
+    print("✅ Проверка окружения: DB_NAME=test подтверждено")
 
 
 @pytest.fixture(scope="session", autouse=True)

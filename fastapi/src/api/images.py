@@ -11,6 +11,9 @@ from src.api import DBDep, get_or_404
 from src.utils.db_manager import DBManager
 from src.tasks.tasks import process_image
 from src.config import settings
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 router = APIRouter()
 
@@ -222,7 +225,7 @@ async def delete_image(
                     deleted_files += 1
             except Exception as e:
                 # Логируем ошибку, но продолжаем удаление
-                print(f"⚠️ Не удалось удалить файл {file_path}: {e}")
+                logger.warning(f"Не удалось удалить файл {file_path}: {e}")
     
     # Удаляем запись из БД
     async with DBManager.transaction(db):

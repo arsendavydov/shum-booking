@@ -280,10 +280,7 @@ async def partial_update_city(
                         detail=f"Город '{final_name}' в стране с ID {final_country_id} уже существует"
                     )
             except Exception as e:
-                # Если ошибка при проверке уникальности, логируем и пробрасываем дальше
-                import traceback
-                print(f"⚠️ Ошибка при проверке уникальности города: {e}")
-                traceback.print_exc()
+                # Если ошибка при проверке уникальности, пробрасываем дальше
                 raise
         
         # Обновляем город

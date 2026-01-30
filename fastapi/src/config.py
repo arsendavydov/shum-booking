@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     REDIS_PORT: int  # Порт Redis
     REDIS_DB: int  # Номер базы данных Redis
     REDIS_PASSWORD: str | None = None  # Пароль Redis (опционально)
+    
+    # Логирование
+    LOG_LEVEL: str = "INFO"  # Уровень логирования: DEBUG, INFO, WARNING, ERROR, CRITICAL
 
     model_config = SettingsConfigDict(
         env_file=env_file,  # None в Docker (переменные из os.environ), путь к файлу локально

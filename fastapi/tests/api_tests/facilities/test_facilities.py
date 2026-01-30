@@ -4,10 +4,10 @@ import time
 
 @pytest.mark.facilities
 class TestFacilities:
-    """Тесты для эндпоинтов удобств"""
+    """Эндпоинты удобств"""
     
     def test_get_all_facilities(self, client):
-        """Тест получения списка всех удобств"""
+        """Получение всех удобств"""
         response = client.get("/facilities")
         assert response.status_code == 200
         data = response.json()
@@ -15,7 +15,7 @@ class TestFacilities:
         assert len(data) <= 10
     
     def test_get_facility_by_id(self, client, test_prefix, created_facility_ids):
-        """Тест получения удобства по ID"""
+        """Получение удобства по ID"""
         facility_data = {"title": f"{test_prefix} Тестовое удобство"}
         create_response = client.post("/facilities", json=facility_data)
         if create_response.status_code == 200:
@@ -33,13 +33,13 @@ class TestFacilities:
                 assert data["title"] == facility_data["title"]
     
     def test_get_facility_by_id_nonexistent(self, client):
-        """Тест получения несуществующего удобства по ID"""
+        """Получение несуществующего удобства по ID"""
         response = client.get("/facilities/99999")
         assert response.status_code == 404
         assert "не найдено" in response.json()["detail"].lower()
     
     def test_create_facility(self, client, test_prefix, created_facility_ids):
-        """Тест создания удобства"""
+        """Создание удобства"""
         facility_data = {"title": f"{test_prefix} Wi-Fi"}
         response = client.post("/facilities", json=facility_data)
         assert response.status_code == 200
@@ -51,7 +51,7 @@ class TestFacilities:
             created_facility_ids.append(facility_id)
     
     def test_delete_facility(self, client, test_prefix):
-        """Тест удаления удобства"""
+        """Удаление удобства"""
         facility_data = {"title": f"{test_prefix} Удобство для удаления"}
         create_response = client.post("/facilities", json=facility_data)
         assert create_response.status_code == 200
@@ -68,7 +68,7 @@ class TestFacilities:
             assert get_response.status_code == 404
     
     def test_filter_facilities_by_title(self, client, test_prefix, created_facility_ids):
-        """Тест фильтрации удобств по названию"""
+        """Фильтрация удобств по названию"""
         facility_data = {"title": f"{test_prefix} Телевизор"}
         create_response = client.post("/facilities", json=facility_data)
         assert create_response.status_code == 200
@@ -86,7 +86,7 @@ class TestFacilities:
         assert any(f"{test_prefix} Телевизор" in f["title"] for f in data)
     
     def test_facilities_pagination(self, client):
-        """Тест пагинации для удобств"""
+        """Пагинация удобств"""
         response = client.get("/facilities?page=1&per_page=3")
         assert response.status_code == 200
         data = response.json()
@@ -95,7 +95,7 @@ class TestFacilities:
     
     @pytest.mark.cache
     def test_facilities_cache(self, client, test_prefix, created_facility_ids):
-        """Тест кэширования удобств"""
+        """Кэширование удобств"""
         unique_title = f"{test_prefix} Кэш проверка {int(time.time())}"
         facility_data = {"title": unique_title}
         create_response = client.post("/facilities", json=facility_data)
@@ -131,7 +131,7 @@ class TestFacilities:
     
     @pytest.mark.cache
     def test_facilities_cache_invalidation_on_create(self, client, test_prefix, created_facility_ids):
-        """Тест инвалидации кэша при создании удобства"""
+        """Инвалидация кэша при создании"""
         unique_title = f"{test_prefix} Кэш инвалидация создание {int(time.time())}"
         filter_title = f"{test_prefix} Кэш"
         
@@ -165,7 +165,7 @@ class TestFacilities:
     
     @pytest.mark.cache
     def test_facilities_cache_invalidation_on_delete(self, client, test_prefix):
-        """Тест инвалидации кэша при удалении удобства"""
+        """Инвалидация кэша при удалении"""
         facility_data = {"title": f"{test_prefix} Кэш тест удаление"}
         create_response = client.post("/facilities", json=facility_data)
         assert create_response.status_code == 200
