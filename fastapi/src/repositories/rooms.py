@@ -1,4 +1,5 @@
 from datetime import date
+from typing import Any
 
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -41,7 +42,7 @@ class RoomsRepository(BaseRepository[RoomsOrm]):
         """
         return RoomsMapper.to_schema(orm_obj)
 
-    async def create(self, **kwargs) -> SchemaRoom:
+    async def create(self, **kwargs: Any) -> SchemaRoom:
         """
         Создать новую комнату с загрузкой facilities.
 
@@ -63,7 +64,7 @@ class RoomsRepository(BaseRepository[RoomsOrm]):
 
         return self._to_schema(instance_with_facilities)
 
-    async def edit(self, id: int, **kwargs) -> SchemaRoom | None:
+    async def edit(self, id: int, **kwargs: Any) -> SchemaRoom | None:
         """
         Изменить комнату по ID с загрузкой facilities.
 

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Body, HTTPException, Query
 from fastapi_cache import FastAPICache
 from fastapi_cache.decorator import cache
 
-from src.api import DBDep, PaginationDep
+from src.api import DBDep, PaginationDep, RoomsRepositoryDepWrite
 from src.schemas import MessageResponse
 from src.utils.api_helpers import get_or_404
 from src.schemas.rooms import Room, RoomPATCH, SchemaRoom, SchemaRoomAvailable
@@ -17,7 +17,7 @@ ROOMS_CACHE_TTL = 300  # 5 минут
 
 
 async def validate_and_process_facilities(
-    db, room_id: int, facility_ids: list[int] | None, rooms_repo, is_update: bool = False
+    db: DBDep, room_id: int, facility_ids: list[int] | None, rooms_repo: RoomsRepositoryDepWrite, is_update: bool = False
 ) -> None:
     """
     Валидировать существование удобств и обработать их для комнаты.

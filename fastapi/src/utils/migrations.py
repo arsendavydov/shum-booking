@@ -9,7 +9,7 @@ from src.utils.logger import get_logger
 logger = get_logger(__name__)
 
 
-def setup_test_database():
+def setup_test_database() -> None:
     """Создать тестовую БД и применить к ней миграции (вызывается при запуске в режиме local)."""
     if settings.DB_NAME != "booking":
         return
@@ -46,7 +46,7 @@ def setup_test_database():
         logger.error(f"Ошибка при работе с тестовой БД: {e}", exc_info=True)
 
 
-def apply_migrations_to_test_db():
+def apply_migrations_to_test_db() -> None:
     """Применить миграции к тестовой БД."""
     logger.info("Применение миграций к тестовой БД...")
     try:

@@ -9,7 +9,10 @@ from datetime import date
 from typing import Any
 
 from sqlalchemy import func
-from sqlalchemy.sql import Select
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from sqlalchemy.sql.selectable import Select as SelectType
 
 
 def calculate_offset(page: int, per_page: int) -> int:
@@ -26,7 +29,7 @@ def calculate_offset(page: int, per_page: int) -> int:
     return (page - 1) * per_page
 
 
-def apply_pagination(query: Select, page: int, per_page: int) -> Select:
+def apply_pagination(query: "SelectType[Any]", page: int, per_page: int) -> "SelectType[Any]":
     """
     Применить пагинацию к SQL запросу.
 
@@ -42,7 +45,7 @@ def apply_pagination(query: Select, page: int, per_page: int) -> Select:
     return query.limit(per_page).offset(offset)
 
 
-def apply_text_filter(query: Select, field: Any, value: str) -> Select:
+def apply_text_filter(query: "SelectType[Any]", field: Any, value: str) -> "SelectType[Any]":
     """
     Применить фильтр по строковому полю с частичным совпадением без учета регистра.
 

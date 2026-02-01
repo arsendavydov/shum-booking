@@ -2,6 +2,7 @@ from fastapi import APIRouter, Body, HTTPException, Response
 
 from src.api import AuthServiceDep, CurrentUserDep, DBDep
 from src.config import settings
+from src.schemas.common import MessageResponse
 from src.schemas.users import SchemaUser, TokenResponse, UserRequestLogin, UserRequestRegister, UserResponse
 from src.utils.db_manager import DBManager
 
@@ -180,9 +181,9 @@ async def get_current_user_info(current_user: CurrentUserDep) -> SchemaUser:
     "/logout",
     summary="Выход пользователя",
     description="Выходит из системы, удаляя JWT токен из cookie. Требуется аутентификация через JWT токен. Токен становится недействительным на клиенте, но остается валидным до истечения срока действия.",
-    response_model=dict,
+    response_model=MessageResponse,
 )
-async def logout_user(response: Response, _current_user: CurrentUserDep) -> dict:
+async def logout_user(response: Response, _current_user: CurrentUserDep) -> MessageResponse:
     """
     Выйти из системы.
 
@@ -213,4 +214,4 @@ async def logout_user(response: Response, _current_user: CurrentUserDep) -> dict
         samesite="lax",
     )
 
-    return {"status": "OK"}
+    return MessageResponse(status="OK")

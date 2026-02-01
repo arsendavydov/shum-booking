@@ -73,7 +73,7 @@ async def handle_delete_operation(
 
 
 async def validate_entity_exists(
-    find_method: Callable[..., Awaitable[Any | None]], entity_name: str, *args, **kwargs
+    find_method: Callable[..., Awaitable[Any | None]], entity_name: str, *args: Any, **kwargs: Any
 ) -> Any:
     """
     Валидировать существование сущности и вернуть её.

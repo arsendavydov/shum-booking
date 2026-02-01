@@ -10,6 +10,7 @@ import os
 import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
+from typing import Any
 
 # Путь к папке с логами (fastapi/logs/)
 LOGS_DIR = Path(__file__).resolve().parent.parent.parent / "logs"
@@ -34,7 +35,7 @@ def _get_log_level() -> str:
         return os.getenv("LOG_LEVEL", "INFO")
 
 
-def _create_handlers(log_file: Path, level: int):
+def _create_handlers(log_file: Path, level: int) -> tuple[logging.FileHandler, logging.StreamHandler[Any]]:
     """Создать file и console handlers с общим форматтером."""
     formatter = logging.Formatter(LOG_FORMAT, datefmt=DATE_FORMAT)
 
@@ -49,7 +50,7 @@ def _create_handlers(log_file: Path, level: int):
     return file_handler, console_handler
 
 
-def setup_logging(log_level: str = None, log_file_name: str = "app.log"):
+def setup_logging(log_level: str | None = None, log_file_name: str = "app.log") -> None:
     """
     Настроить систему логирования для приложения.
 

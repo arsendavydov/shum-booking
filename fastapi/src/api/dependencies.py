@@ -9,6 +9,7 @@
 - JWT аутентификация
 """
 
+from collections.abc import AsyncGenerator
 from typing import Annotated, Any
 
 from fastapi import Cookie, Depends, HTTPException, Query, Request
@@ -70,7 +71,7 @@ def get_db_manager() -> DBManager:
     return DBManager()
 
 
-async def get_db() -> AsyncSession:
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """
     Dependency для получения сессии базы данных через DBManager.
 
@@ -100,7 +101,7 @@ async def get_hotels_repository(db: Annotated[AsyncSession, Depends(get_db)]) ->
     return DBManager.get_hotels_repository(db)
 
 
-async def get_hotels_repository_with_commit(db: Annotated[AsyncSession, Depends(get_db)]) -> "HotelsRepository":
+async def get_hotels_repository_with_commit(db: Annotated[AsyncSession, Depends(get_db)]) -> AsyncGenerator["HotelsRepository", None]:
     """Dependency для получения репозитория отелей (запись с commit/rollback)."""
     repo = DBManager.get_hotels_repository(db)
     try:
@@ -116,7 +117,7 @@ async def get_users_repository(db: Annotated[AsyncSession, Depends(get_db)]) -> 
     return DBManager.get_users_repository(db)
 
 
-async def get_users_repository_with_commit(db: Annotated[AsyncSession, Depends(get_db)]) -> "UsersRepository":
+async def get_users_repository_with_commit(db: Annotated[AsyncSession, Depends(get_db)]) -> AsyncGenerator["UsersRepository", None]:
     """Dependency для получения репозитория пользователей (запись с commit/rollback)."""
     repo = DBManager.get_users_repository(db)
     try:
@@ -132,7 +133,7 @@ async def get_rooms_repository(db: Annotated[AsyncSession, Depends(get_db)]) -> 
     return DBManager.get_rooms_repository(db)
 
 
-async def get_rooms_repository_with_commit(db: Annotated[AsyncSession, Depends(get_db)]) -> "RoomsRepository":
+async def get_rooms_repository_with_commit(db: Annotated[AsyncSession, Depends(get_db)]) -> AsyncGenerator["RoomsRepository", None]:
     """Dependency для получения репозитория комнат (запись с commit/rollback)."""
     repo = DBManager.get_rooms_repository(db)
     try:
@@ -164,7 +165,7 @@ async def get_bookings_repository(db: Annotated[AsyncSession, Depends(get_db)]) 
     return DBManager.get_bookings_repository(db)
 
 
-async def get_bookings_repository_with_commit(db: Annotated[AsyncSession, Depends(get_db)]) -> "BookingsRepository":
+async def get_bookings_repository_with_commit(db: Annotated[AsyncSession, Depends(get_db)]) -> AsyncGenerator["BookingsRepository", None]:
     """Dependency для получения репозитория бронирований (запись с commit/rollback)."""
     repo = DBManager.get_bookings_repository(db)
     try:

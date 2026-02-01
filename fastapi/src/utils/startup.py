@@ -70,7 +70,7 @@ async def shutdown_handler():
         logger.warning(f"Ошибка при закрытии соединения с Redis: {e}", exc_info=True)
 
 
-def cleanup_temp_files():
+def cleanup_temp_files() -> None:
     """Очистить старые временные файлы (старше 1 часа)."""
     temp_dir = Path(__file__).resolve().parent.parent.parent.parent / "static" / "temp"
     if not temp_dir.exists():

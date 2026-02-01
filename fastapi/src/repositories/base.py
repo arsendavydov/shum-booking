@@ -45,7 +45,7 @@ class BaseRepository(Generic[ModelType]):
         """
         raise NotImplementedError("Метод _to_schema должен быть переопределен в дочернем классе")
 
-    async def create(self, **kwargs) -> Any:
+    async def create(self, **kwargs: Any) -> Any:
         """
         Создать новую запись.
 
@@ -137,7 +137,7 @@ class BaseRepository(Generic[ModelType]):
 
         return [self._to_schema(obj) for obj in orm_objs]
 
-    async def edit(self, id: int, **kwargs) -> Any | None:
+    async def edit(self, id: int, **kwargs: Any) -> Any | None:
         """
         Изменить запись по ID.
 
@@ -168,7 +168,7 @@ class BaseRepository(Generic[ModelType]):
 
         return self._to_schema(instance)
 
-    async def update(self, id: int, **kwargs) -> Any | None:
+    async def update(self, id: int, **kwargs: Any) -> Any | None:
         """
         Обновить запись по ID (алиас для edit).
 

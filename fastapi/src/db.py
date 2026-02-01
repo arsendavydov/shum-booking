@@ -1,5 +1,7 @@
+from typing import Any
+
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 
 from src.config import settings
 from src.utils.logger import get_logger
@@ -7,11 +9,11 @@ from src.utils.logger import get_logger
 logger = get_logger(__name__)
 
 # Ленивая инициализация engine - создается только при первом использовании
-_engine = None
-_async_session_maker_instance = None
+_engine: AsyncEngine | None = None
+_async_session_maker_instance: async_sessionmaker[AsyncSession] | None = None
 
 
-def _get_engine():
+def _get_engine() -> AsyncEngine:
     """Получить engine, создавая его при первом вызове."""
     global _engine
     if _engine is None:
@@ -20,7 +22,7 @@ def _get_engine():
     return _engine
 
 
-def _get_async_session_maker():
+def _get_async_session_maker() -> async_sessionmaker[AsyncSession]:
     """Получить async_session_maker, создавая его при первом вызове."""
     global _async_session_maker_instance
     if _async_session_maker_instance is None:
@@ -28,7 +30,7 @@ def _get_async_session_maker():
     return _async_session_maker_instance
 
 
-async def check_connection():
+async def check_connection() -> Any:
     """Проверка подключения к базе данных."""
     async with _get_engine().begin() as conn:
         res = await conn.execute(text("SELECT version()"))
@@ -38,7 +40,7 @@ async def check_connection():
         return result
 
 
-async def close_engine():
+async def close_engine() -> None:
     """Закрытие подключения к базе данных."""
     global _engine
     if _engine is not None:

@@ -1,11 +1,12 @@
 import os
 from pathlib import Path
+from typing import Any
 
 from celery import Task
 from celery.utils.log import get_task_logger
 from PIL import Image
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 
 # Импортируем celery_app - он должен быть инициализирован до импорта tasks
 from src.tasks.celery_app import celery_app
@@ -32,7 +33,7 @@ DB_USERNAME = os.getenv("DB_USERNAME", "postgres")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "postgres")
 
 
-def get_db_session(db_name: str):
+def get_db_session(db_name: str) -> Session:
     """Создать синхронную сессию БД на основе переданного db_name."""
     if not db_name:
         raise ValueError("db_name обязателен для создания сессии БД")
@@ -43,7 +44,7 @@ def get_db_session(db_name: str):
 
 
 @celery_app.task(bind=True, name="process_image")
-def process_image(_self: Task, hotel_id: int, original_filename: str, temp_file_path: str, db_name: str) -> dict:
+def process_image(_self: Task, hotel_id: int, original_filename: str, temp_file_path: str, db_name: str) -> dict[str, Any]:
     """
     Обработка изображения: проверка размера, создание записи в БД, ресайз и сохранение.
 

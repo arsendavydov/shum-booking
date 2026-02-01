@@ -1,8 +1,10 @@
 import logging
 import time
+from collections.abc import Awaitable, Callable
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
+from starlette.responses import Response
 
 root_logger = logging.getLogger()
 
@@ -10,7 +12,7 @@ root_logger = logging.getLogger()
 class HTTPLoggingMiddleware(BaseHTTPMiddleware):
     """Middleware для логирования HTTP запросов (только для основного приложения)."""
 
-    async def dispatch(self, request: Request, call_next):
+    async def dispatch(self, request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
         start_time = time.time()
         response = await call_next(request)
         _process_time = time.time() - start_time  # Время обработки (можно использовать для метрик)

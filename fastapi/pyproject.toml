@@ -91,3 +91,54 @@ line-ending = "auto"
 [tool.ruff.lint.mccabe]
 max-complexity = 10
 
+[tool.pyright]
+include = ["src"]
+exclude = [
+    "**/__pycache__",
+    "**/migrations",
+    "**/tests",
+    ".venv",
+    "venv",
+]
+pythonVersion = "3.11"
+pythonPlatform = "Linux"
+typeCheckingMode = "basic"
+reportMissingImports = true
+reportMissingTypeStubs = false
+reportUnusedImport = true
+reportUnusedClass = true
+reportUnusedFunction = false
+reportUnusedVariable = true
+reportDuplicateImport = true
+reportOptionalSubscript = true
+reportOptionalMemberAccess = true
+reportOptionalCall = true
+reportOptionalIterable = true
+reportOptionalContextManager = true
+reportOptionalOperand = true
+reportGeneralTypeIssues = true
+reportPrivateImportUsage = true
+reportUnknownMemberType = false
+reportUnknownArgumentType = false
+reportUnknownVariableType = false
+reportUnknownLambdaType = true
+reportMissingParameterType = true
+reportMissingTypeArgument = false
+reportInvalidTypeVarUse = true
+reportCallInDefaultInitializer = false
+reportUnnecessaryIsInstance = true
+reportUnnecessaryCast = true
+reportAssertAlwaysTrue = true
+reportSelfClsParameterName = true
+reportImplicitStringConcatenation = false
+reportInvalidTypeForm = false
+reportArgumentType = false
+reportAttributeAccessIssue = false
+reportOperatorIssue = false
+reportCallIssue = false
+reportIncompatibleMethodOverride = false
+strictListInference = true
+strictDictionaryInference = true
+strictSetInference = true
+strictParameterNoneValue = true
+

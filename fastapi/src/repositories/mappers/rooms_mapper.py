@@ -1,12 +1,13 @@
 from typing import Any
 
+from src.models.facilities import FacilitiesOrm
 from src.models.rooms import RoomsOrm
 from src.repositories.mappers.base import DataMapper
 from src.schemas.facilities import SchemaFacility
 from src.schemas.rooms import SchemaRoom, SchemaRoomAvailable
 
 
-def facilities_to_schema(facilities_list) -> list[SchemaFacility]:
+def facilities_to_schema(facilities_list: list[FacilitiesOrm] | None) -> list[SchemaFacility]:
     """
     Преобразовать список ORM объектов facilities в список SchemaFacility.
 
