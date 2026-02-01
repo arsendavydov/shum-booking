@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Query, HTTPException, Body
 from typing import List
-from datetime import time, date
+from datetime import date
 from fastapi_cache.decorator import cache
 from src.schemas.hotels import Hotel, HotelPATCH, SchemaHotel, SchemaHotelWithRooms
 from src.schemas import MessageResponse
-from src.api import PaginationDep, DBDep, get_or_404, invalidate_cache, validate_city_by_name, handle_delete_operation
+from src.api import PaginationDep, DBDep, get_or_404, invalidate_cache, handle_delete_operation, handle_validation_error
 from src.utils.db_manager import DBManager
 
 router = APIRouter()
@@ -187,27 +187,18 @@ async def create_hotel(
         Словарь со статусом операции {"status": "OK"}
     """
     async with DBManager.transaction(db):
-        # Валидируем существование города (без учета регистра)
-        city_id = await validate_city_by_name(db, hotel.city)
-        
-        # Проверяем уникальность title
         hotels_repo = DBManager.get_hotels_repository(db)
-        if await hotels_repo.exists_by_title(hotel.title):
-            raise HTTPException(
-                status_code=409,
-                detail=f"Отель с названием '{hotel.title}' уже существует"
+        try:
+            await hotels_repo.create_hotel_with_validation(
+                title=hotel.title,
+                city_name=hotel.city,
+                address=hotel.address,
+                postal_code=hotel.postal_code,
+                check_in_time=hotel.check_in_time,
+                check_out_time=hotel.check_out_time
             )
-        
-        # Создаем отель с city_id из найденного города
-        hotel_data = hotel.model_dump()
-        hotel_data['city_id'] = city_id
-        del hotel_data['city']  # Удаляем city, так как в БД хранится city_id
-        # Если check_in_time или check_out_time не указаны, используем дефолтные значения
-        if hotel_data.get('check_in_time') is None:
-            hotel_data['check_in_time'] = time(14, 0)
-        if hotel_data.get('check_out_time') is None:
-            hotel_data['check_out_time'] = time(12, 0)
-        await hotels_repo.create(**hotel_data)
+        except ValueError as e:
+            raise handle_validation_error(e)
     
     # Инвалидируем кэш отелей
     await invalidate_cache("hotels")
@@ -253,38 +244,18 @@ async def update_hotel(
     """
     async with DBManager.transaction(db):
         hotels_repo = DBManager.get_hotels_repository(db)
-        
-        # Проверяем существование отеля
-        existing_hotel = await hotels_repo.get_by_id(hotel_id)
-        if existing_hotel is None:
-            raise HTTPException(status_code=404, detail="Отель не найден")
-        
-        # Валидируем существование города (без учета регистра)
-        city_id = await validate_city_by_name(db, hotel.city)
-        
-        # Проверяем уникальность title, если он изменяется
-        if hotel.title != existing_hotel.title:
-            if await hotels_repo.exists_by_title(hotel.title, exclude_hotel_id=hotel_id):
-                raise HTTPException(
-                    status_code=409,
-                    detail=f"Отель с названием '{hotel.title}' уже существует"
-                )
-        
         try:
-            updated_hotel = await hotels_repo.edit(
-                id=hotel_id,
+            await hotels_repo.update_hotel_with_validation(
+                hotel_id=hotel_id,
                 title=hotel.title,
-                city_id=city_id,
+                city_name=hotel.city,
                 address=hotel.address,
                 postal_code=hotel.postal_code,
                 check_in_time=hotel.check_in_time,
                 check_out_time=hotel.check_out_time
             )
         except ValueError as e:
-            raise HTTPException(status_code=400, detail=str(e))
-        
-        if updated_hotel is None:
-            raise HTTPException(status_code=404, detail="Отель не найден")
+            raise handle_validation_error(e)
     
     # Инвалидируем кэш отелей
     await invalidate_cache("hotels")
@@ -342,32 +313,19 @@ async def partial_update_hotel(
     """
     async with DBManager.transaction(db):
         hotels_repo = DBManager.get_hotels_repository(db)
-        
-        # Проверяем существование отеля
-        existing_hotel = await hotels_repo.get_by_id(hotel_id)
-        if existing_hotel is None:
-            raise HTTPException(status_code=404, detail="Отель не найден")
-        
-        # Формируем данные для обновления (только переданные поля)
-        update_data = hotel.model_dump(exclude_unset=True)
-        
-        # Если передан city, валидируем его существование (без учета регистра)
-        if "city" in update_data:
-            city_id = await validate_city_by_name(db, update_data["city"])
-            # Заменяем city на city_id для сохранения в БД
-            update_data["city_id"] = city_id
-            del update_data["city"]
-        
-        # Проверяем уникальность title, если он изменяется
-        if "title" in update_data and update_data["title"] != existing_hotel.title:
-            if await hotels_repo.exists_by_title(update_data["title"], exclude_hotel_id=hotel_id):
-                raise HTTPException(
-                    status_code=409,
-                    detail=f"Отель с названием '{update_data['title']}' уже существует"
-                )
-        
-        if update_data:
-            await hotels_repo.update(id=hotel_id, **update_data)
+        try:
+            update_data = hotel.model_dump(exclude_unset=True)
+            await hotels_repo.partial_update_hotel_with_validation(
+                hotel_id=hotel_id,
+                title=update_data.get("title"),
+                city_name=update_data.get("city"),
+                address=update_data.get("address"),
+                postal_code=update_data.get("postal_code"),
+                check_in_time=update_data.get("check_in_time"),
+                check_out_time=update_data.get("check_out_time")
+            )
+        except ValueError as e:
+            raise handle_validation_error(e)
     
     # Инвалидируем кэш отелей
     await invalidate_cache("hotels")

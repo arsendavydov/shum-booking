@@ -7,7 +7,13 @@ from src.api.dependencies import (
 )
 
 # Экспорт утилит
-from src.api.utils import get_or_404, invalidate_cache, handle_delete_operation, validate_city_by_name
+from src.utils.api_helpers import (
+    get_or_404,
+    invalidate_cache,
+    handle_delete_operation,
+    validate_entity_exists,
+    handle_validation_error
+)
 
 # Экспорт роутеров (импортируем после зависимостей)
 from src.api.hotels import router as hotels_router
@@ -40,5 +46,6 @@ __all__ = [
     "get_or_404",
     "invalidate_cache",
     "handle_delete_operation",
-    "validate_city_by_name"
+    "validate_entity_exists",
+    "handle_validation_error"
 ]

@@ -2,9 +2,8 @@ from fastapi import APIRouter, HTTPException, Body
 from typing import List
 from src.schemas.bookings import Booking, SchemaBooking
 from src.schemas import MessageResponse
-from src.api import DBDep, CurrentUserDep, PaginationDep
+from src.api import DBDep, CurrentUserDep, PaginationDep, handle_validation_error
 from src.utils.db_manager import DBManager
-from src.models.bookings import BookingsOrm
 
 router = APIRouter()
 
@@ -104,52 +103,16 @@ async def create_booking(
         HTTPException: 409 если номер уже забронирован на указанные даты
     """
     async with DBManager.transaction(db):
-        # Проверяем существование номера
-        rooms_repo = DBManager.get_rooms_repository(db)
-        room = await rooms_repo.get_by_id(booking.room_id)
-        if room is None:
-            raise HTTPException(status_code=404, detail="Номер не найден")
-        
-        # Проверяем корректность дат
-        if booking.date_from >= booking.date_to:
-            raise HTTPException(
-                status_code=400,
-                detail="Дата заезда должна быть раньше даты выезда"
-            )
-        
-        # Проверяем наличие конфликтующих бронирований
         bookings_repo = DBManager.get_bookings_repository(db)
-        has_conflict = await bookings_repo.has_conflicting_bookings(
-            room_id=booking.room_id,
-            date_from=booking.date_from,
-            date_to=booking.date_to
-        )
-        
-        if has_conflict:
-            raise HTTPException(
-                status_code=409,
-                detail="Номер уже забронирован на указанные даты"
-            )
-        
-        # Рассчитываем общую цену через метод ORM модели
         try:
-            total_price = BookingsOrm.calculate_total_price(
-                room_price_per_night=room.price,
+            await bookings_repo.create_booking_with_validation(
+                room_id=booking.room_id,
+                user_id=current_user.id,
                 date_from=booking.date_from,
                 date_to=booking.date_to
             )
         except ValueError as e:
-            raise HTTPException(
-                status_code=400,
-                detail=str(e)
-            )
-        
-        # Создаем бронирование с рассчитанной ценой
-        # user_id берется из токена (current_user.id)
-        booking_data = booking.model_dump()
-        booking_data["user_id"] = current_user.id
-        booking_data["price"] = total_price
-        await bookings_repo.create(**booking_data)
+            raise handle_validation_error(e)
     
     return MessageResponse(status="OK")
 

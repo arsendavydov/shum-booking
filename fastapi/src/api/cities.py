@@ -1,12 +1,10 @@
 from fastapi import APIRouter, Query, HTTPException, Body, Path
 from typing import List
-from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 from fastapi_cache.decorator import cache
 from fastapi_cache import FastAPICache
 from src.schemas.cities import City, CityPATCH, SchemaCity
 from src.schemas import MessageResponse
-from src.api import PaginationDep, DBDep, get_or_404
+from src.api import PaginationDep, DBDep, get_or_404, handle_validation_error
 from src.utils.db_manager import DBManager
 
 CITIES_CACHE_TTL = 300
@@ -115,25 +113,14 @@ async def create_city(
         HTTPException: 409 если город с таким названием в этой стране уже существует
     """
     async with DBManager.transaction(db):
-        # Проверяем существование страны
-        countries_repo = DBManager.get_countries_repository(db)
-        country = await countries_repo._get_one_by_id_exact(city.country_id)
-        if country is None:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Страна с ID {city.country_id} не найдена"
-            )
-        
-        # Проверяем уникальность города в стране
         cities_repo = DBManager.get_cities_repository(db)
-        existing_city = await cities_repo.get_by_name_and_country_id(city.name, city.country_id)
-        if existing_city is not None:
-            raise HTTPException(
-                status_code=409,
-                detail=f"Город '{city.name}' в стране с ID {city.country_id} уже существует"
+        try:
+            await cities_repo.create_city_with_validation(
+                name=city.name,
+                country_id=city.country_id
             )
-        
-        await cities_repo.create(name=city.name, country_id=city.country_id)
+        except ValueError as e:
+            raise handle_validation_error(e)
     
     # Инвалидируем кэш городов
     await FastAPICache.clear(namespace="cities")
@@ -169,38 +156,14 @@ async def update_city(
     """
     async with DBManager.transaction(db):
         cities_repo = DBManager.get_cities_repository(db)
-        
-        # Проверяем существование города
-        existing_city = await cities_repo._get_one_by_id_exact(city_id)
-        if existing_city is None:
-            raise HTTPException(status_code=404, detail="Город не найден")
-        
-        # Проверяем существование страны
-        countries_repo = DBManager.get_countries_repository(db)
-        country = await countries_repo._get_one_by_id_exact(city.country_id)
-        if country is None:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Страна с ID {city.country_id} не найдена"
+        try:
+            await cities_repo.update_city_with_validation(
+                city_id=city_id,
+                name=city.name,
+                country_id=city.country_id
             )
-        
-        # Проверяем уникальность города в стране, если изменяется name или country_id
-        if city.name != existing_city.name or city.country_id != existing_city.country_id:
-            existing_city_check = await cities_repo.get_by_name_and_country_id(city.name, city.country_id)
-            if existing_city_check is not None and existing_city_check.id != city_id:
-                raise HTTPException(
-                    status_code=409,
-                    detail=f"Город '{city.name}' в стране с ID {city.country_id} уже существует"
-                )
-        
-        updated_city = await cities_repo.edit(
-            id=city_id,
-            name=city.name,
-            country_id=city.country_id
-        )
-        
-        if updated_city is None:
-            raise HTTPException(status_code=404, detail="Город не найден")
+        except ValueError as e:
+            raise handle_validation_error(e)
     
     # Инвалидируем кэш городов
     await FastAPICache.clear(namespace="cities")
@@ -236,58 +199,15 @@ async def partial_update_city(
     """
     async with DBManager.transaction(db):
         cities_repo = DBManager.get_cities_repository(db)
-        
-        # Проверяем существование города с загрузкой связи country
-        query = select(cities_repo.model).options(
-            selectinload(cities_repo.model.country)
-        ).where(cities_repo.model.id == city_id)
-        result = await db.execute(query)
-        existing_city_orm = result.scalar_one_or_none()
-        
-        if existing_city_orm is None:
-            raise HTTPException(status_code=404, detail="Город не найден")
-        
-        # Получаем существующий город как схему для удобства
-        existing_city = cities_repo._to_schema(existing_city_orm)
-        
-        # Формируем данные для обновления (только переданные поля)
-        update_data = city.model_dump(exclude_unset=True)
-        
-        if not update_data:
-            return MessageResponse(status="OK")
-        
-        # Проверяем и валидируем country_id, если указан
-        if "country_id" in update_data:
-            countries_repo = DBManager.get_countries_repository(db)
-            country = await countries_repo._get_one_by_id_exact(update_data["country_id"])
-            if country is None:
-                raise HTTPException(
-                    status_code=404,
-                    detail=f"Страна с ID {update_data['country_id']} не найдена"
-                )
-        
-        # Проверяем уникальность города в стране
-        final_name = update_data.get("name", existing_city.name)
-        final_country_id = update_data.get("country_id", existing_city.country_id)
-        
-        # Проверяем, изменилось ли что-то, что требует проверки уникальности
-        if final_name != existing_city.name or final_country_id != existing_city.country_id:
-            try:
-                existing_city_check = await cities_repo.get_by_name_and_country_id(final_name, final_country_id)
-                if existing_city_check is not None and existing_city_check.id != city_id:
-                    raise HTTPException(
-                        status_code=409,
-                        detail=f"Город '{final_name}' в стране с ID {final_country_id} уже существует"
-                    )
-            except Exception as e:
-                # Если ошибка при проверке уникальности, пробрасываем дальше
-                raise
-        
-        # Обновляем город
-        updated_city = await cities_repo.edit(id=city_id, **update_data)
-        
-        if updated_city is None:
-            raise HTTPException(status_code=404, detail="Город не найден")
+        try:
+            update_data = city.model_dump(exclude_unset=True)
+            await cities_repo.partial_update_city_with_validation(
+                city_id=city_id,
+                name=update_data.get("name"),
+                country_id=update_data.get("country_id")
+            )
+        except ValueError as e:
+            raise handle_validation_error(e)
     
     # Инвалидируем кэш городов
     await FastAPICache.clear(namespace="cities")

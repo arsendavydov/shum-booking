@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from src.repositories.base import BaseRepository
@@ -96,4 +96,157 @@ class CountriesRepository(BaseRepository[CountriesOrm]):
         )
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
+    
+    async def create_country_with_validation(
+        self,
+        name: str,
+        iso_code: str
+    ) -> SchemaCountry:
+        """
+        Создать страну с полной валидацией.
+        
+        Выполняет все проверки и создает страну:
+        - Проверяет уникальность name
+        - Проверяет уникальность iso_code
+        - Создает страну
+        
+        Args:
+            name: Название страны
+            iso_code: ISO код страны (2 буквы)
+            
+        Returns:
+            Созданная страна (Pydantic схема)
+            
+        Raises:
+            ValueError: Если страна с таким названием или ISO кодом уже существует
+        """
+        # Проверяем уникальность name
+        existing_by_name = await self.get_by_name_case_insensitive(name)
+        if existing_by_name is not None:
+            raise ValueError(f"Страна с названием '{name}' уже существует")
+        
+        # Проверяем уникальность iso_code
+        existing_by_iso = await self.get_by_iso_code(iso_code)
+        if existing_by_iso is not None:
+            raise ValueError(f"Страна с ISO кодом '{iso_code.upper()}' уже существует")
+        
+        # Создаем страну
+        return await self.create(name=name, iso_code=iso_code.upper())
+    
+    async def update_country_with_validation(
+        self,
+        country_id: int,
+        name: str,
+        iso_code: str
+    ) -> SchemaCountry:
+        """
+        Обновить страну с полной валидацией.
+        
+        Выполняет все проверки и обновляет страну:
+        - Проверяет существование страны
+        - Проверяет уникальность name (если изменяется)
+        - Проверяет уникальность iso_code (если изменяется)
+        - Обновляет страну
+        
+        Args:
+            country_id: ID страны для обновления
+            name: Новое название страны
+            iso_code: Новый ISO код страны (2 буквы)
+            
+        Returns:
+            Обновленная страна (Pydantic схема)
+            
+        Raises:
+            ValueError: Если страна не найдена или страна с таким названием/ISO кодом уже существует
+        """
+        # Проверяем существование страны
+        existing_country = await self._get_one_by_id_exact(country_id)
+        if existing_country is None:
+            raise ValueError("Страна не найдена")
+        
+        # Проверяем уникальность name, если он изменяется
+        if name != existing_country.name:
+            existing_by_name = await self.get_by_name_case_insensitive(name)
+            if existing_by_name is not None:
+                raise ValueError(f"Страна с названием '{name}' уже существует")
+        
+        # Проверяем уникальность iso_code, если он изменяется
+        iso_code_upper = iso_code.upper()
+        if iso_code_upper != existing_country.iso_code:
+            existing_by_iso = await self.get_by_iso_code(iso_code)
+            if existing_by_iso is not None:
+                raise ValueError(f"Страна с ISO кодом '{iso_code_upper}' уже существует")
+        
+        # Обновляем страну
+        updated_country = await self.edit(
+            id=country_id,
+            name=name,
+            iso_code=iso_code_upper
+        )
+        
+        if updated_country is None:
+            raise ValueError("Страна не найдена")
+        
+        return updated_country
+    
+    async def partial_update_country_with_validation(
+        self,
+        country_id: int,
+        name: Optional[str] = None,
+        iso_code: Optional[str] = None
+    ) -> SchemaCountry:
+        """
+        Частично обновить страну с полной валидацией.
+        
+        Выполняет все проверки и частично обновляет страну:
+        - Проверяет существование страны
+        - Проверяет уникальность name (если изменяется)
+        - Проверяет уникальность iso_code (если изменяется)
+        - Обновляет только переданные поля
+        
+        Args:
+            country_id: ID страны для обновления
+            name: Новое название страны (опционально)
+            iso_code: Новый ISO код страны (опционально, 2 буквы)
+            
+        Returns:
+            Обновленная страна (Pydantic схема)
+            
+        Raises:
+            ValueError: Если страна не найдена или страна с таким названием/ISO кодом уже существует
+        """
+        # Проверяем существование страны
+        existing_country = await self._get_one_by_id_exact(country_id)
+        if existing_country is None:
+            raise ValueError("Страна не найдена")
+        
+        update_data: Dict[str, Any] = {}
+        
+        # Проверяем и добавляем name, если указан
+        if name is not None:
+            if name != existing_country.name:
+                existing_by_name = await self.get_by_name_case_insensitive(name)
+                if existing_by_name is not None:
+                    raise ValueError(f"Страна с названием '{name}' уже существует")
+            update_data["name"] = name
+        
+        # Проверяем и добавляем iso_code, если указан
+        if iso_code is not None:
+            iso_code_upper = iso_code.upper()
+            if iso_code_upper != existing_country.iso_code:
+                existing_by_iso = await self.get_by_iso_code(iso_code)
+                if existing_by_iso is not None:
+                    raise ValueError(f"Страна с ISO кодом '{iso_code_upper}' уже существует")
+            update_data["iso_code"] = iso_code_upper
+        
+        if not update_data:
+            return self._to_schema(existing_country)
+        
+        # Обновляем страну
+        updated_country = await self.edit(id=country_id, **update_data)
+        
+        if updated_country is None:
+            raise ValueError("Страна не найдена")
+        
+        return updated_country
 

@@ -45,8 +45,11 @@ fi
 # Запускаем тесты (переходим в fastapi/ для запуска pytest)
 echo "🧪 Запуск тестов..."
 cd "$PROJECT_ROOT/fastapi"
-python3.11 -m pytest tests/api_tests/ -v || true
-TEST_EXIT_CODE=$?
+
+# Запускаем тесты с записью результатов в файл через tee
+LOG_FILE="$PROJECT_ROOT/fastapi/logs/app_test.log"
+python3.11 -m pytest tests/api_tests/ -v --color=yes --tb=short 2>&1 | tee -a "$LOG_FILE"
+TEST_EXIT_CODE=${PIPESTATUS[0]}
 
 # Возвращаемся в корень проекта
 cd "$PROJECT_ROOT"

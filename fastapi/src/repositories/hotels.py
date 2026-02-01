@@ -1,5 +1,5 @@
-from typing import Optional, List
-from datetime import date
+from typing import Optional, List, Dict, Any
+from datetime import date, time
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from src.repositories.base import BaseRepository
@@ -301,4 +301,215 @@ class HotelsRepository(BaseRepository[HotelsOrm]):
             hotels_with_rooms.append(hotel_with_rooms)
         
         return hotels_with_rooms
+    
+    async def create_hotel_with_validation(
+        self,
+        title: str,
+        city_name: str,
+        address: str,
+        postal_code: Optional[str] = None,
+        check_in_time: Optional[time] = None,
+        check_out_time: Optional[time] = None
+    ) -> SchemaHotel:
+        """
+        Создать отель с полной валидацией.
+        
+        Выполняет все проверки и создает отель:
+        - Валидирует существование города по названию (без учета регистра)
+        - Проверяет уникальность title
+        - Устанавливает дефолтные значения для check_in_time и check_out_time
+        - Создает отель
+        
+        Args:
+            title: Название отеля
+            city_name: Название города (без учета регистра)
+            address: Адрес отеля
+            postal_code: Почтовый индекс (опционально)
+            check_in_time: Время заезда (опционально, по умолчанию 14:00)
+            check_out_time: Время выезда (опционально, по умолчанию 12:00)
+            
+        Returns:
+            Созданный отель (Pydantic схема)
+            
+        Raises:
+            ValueError: Если город не найден или отель с таким title уже существует
+        """
+        from src.repositories.cities import CitiesRepository
+        
+        # Валидируем существование города
+        cities_repo = CitiesRepository(self.session)
+        city_orm = await cities_repo.get_by_name_case_insensitive(city_name)
+        if city_orm is None:
+            raise ValueError(f"Город '{city_name}' не найден")
+        
+        # Проверяем уникальность title
+        if await self.exists_by_title(title):
+            raise ValueError(f"Отель с названием '{title}' уже существует")
+        
+        # Устанавливаем дефолтные значения
+        if check_in_time is None:
+            check_in_time = time(14, 0)
+        if check_out_time is None:
+            check_out_time = time(12, 0)
+        
+        # Создаем отель
+        hotel_data = {
+            "title": title,
+            "city_id": city_orm.id,
+            "address": address,
+            "postal_code": postal_code,
+            "check_in_time": check_in_time,
+            "check_out_time": check_out_time
+        }
+        
+        return await self.create(**hotel_data)
+    
+    async def update_hotel_with_validation(
+        self,
+        hotel_id: int,
+        title: str,
+        city_name: str,
+        address: str,
+        postal_code: Optional[str] = None,
+        check_in_time: Optional[time] = None,
+        check_out_time: Optional[time] = None
+    ) -> SchemaHotel:
+        """
+        Обновить отель с полной валидацией.
+        
+        Выполняет все проверки и обновляет отель:
+        - Проверяет существование отеля
+        - Валидирует существование города по названию (без учета регистра)
+        - Проверяет уникальность title (если изменяется)
+        - Обновляет отель
+        
+        Args:
+            hotel_id: ID отеля для обновления
+            title: Новое название отеля
+            city_name: Название города (без учета регистра)
+            address: Новый адрес отеля
+            postal_code: Почтовый индекс (опционально)
+            check_in_time: Время заезда (опционально)
+            check_out_time: Время выезда (опционально)
+            
+        Returns:
+            Обновленный отель (Pydantic схема)
+            
+        Raises:
+            ValueError: Если отель не найден, город не найден или отель с таким title уже существует
+        """
+        # Проверяем существование отеля
+        existing_hotel = await self.get_by_id(hotel_id)
+        if existing_hotel is None:
+            raise ValueError("Отель не найден")
+        
+        from src.repositories.cities import CitiesRepository
+        
+        # Валидируем существование города
+        cities_repo = CitiesRepository(self.session)
+        city_orm = await cities_repo.get_by_name_case_insensitive(city_name)
+        if city_orm is None:
+            raise ValueError(f"Город '{city_name}' не найден")
+        
+        # Проверяем уникальность title, если он изменяется
+        if title != existing_hotel.title:
+            if await self.exists_by_title(title, exclude_hotel_id=hotel_id):
+                raise ValueError(f"Отель с названием '{title}' уже существует")
+        
+        # Обновляем отель
+        try:
+            updated_hotel = await self.edit(
+                id=hotel_id,
+                title=title,
+                city_id=city_orm.id,
+                address=address,
+                postal_code=postal_code,
+                check_in_time=check_in_time,
+                check_out_time=check_out_time
+            )
+        except ValueError as e:
+            raise ValueError(str(e))
+        
+        if updated_hotel is None:
+            raise ValueError("Отель не найден")
+        
+        return updated_hotel
+    
+    async def partial_update_hotel_with_validation(
+        self,
+        hotel_id: int,
+        title: Optional[str] = None,
+        city_name: Optional[str] = None,
+        address: Optional[str] = None,
+        postal_code: Optional[str] = None,
+        check_in_time: Optional[time] = None,
+        check_out_time: Optional[time] = None
+    ) -> SchemaHotel:
+        """
+        Частично обновить отель с полной валидацией.
+        
+        Выполняет все проверки и частично обновляет отель:
+        - Проверяет существование отеля
+        - Валидирует существование города (если передан city_name)
+        - Проверяет уникальность title (если изменяется)
+        - Обновляет только переданные поля
+        
+        Args:
+            hotel_id: ID отеля для обновления
+            title: Новое название отеля (опционально)
+            city_name: Название города (опционально, без учета регистра)
+            address: Новый адрес отеля (опционально)
+            postal_code: Почтовый индекс (опционально)
+            check_in_time: Время заезда (опционально)
+            check_out_time: Время выезда (опционально)
+            
+        Returns:
+            Обновленный отель (Pydantic схема)
+            
+        Raises:
+            ValueError: Если отель не найден, город не найден или отель с таким title уже существует
+        """
+        # Проверяем существование отеля
+        existing_hotel = await self.get_by_id(hotel_id)
+        if existing_hotel is None:
+            raise ValueError("Отель не найден")
+        
+        # Формируем данные для обновления
+        update_data: Dict[str, Any] = {}
+        
+        if title is not None:
+            update_data["title"] = title
+        if address is not None:
+            update_data["address"] = address
+        if postal_code is not None:
+            update_data["postal_code"] = postal_code
+        if check_in_time is not None:
+            update_data["check_in_time"] = check_in_time
+        if check_out_time is not None:
+            update_data["check_out_time"] = check_out_time
+        
+        # Валидируем город, если передан
+        if city_name is not None:
+            from src.repositories.cities import CitiesRepository
+            cities_repo = CitiesRepository(self.session)
+            city_orm = await cities_repo.get_by_name_case_insensitive(city_name)
+            if city_orm is None:
+                raise ValueError(f"Город '{city_name}' не найден")
+            update_data["city_id"] = city_orm.id
+        
+        # Проверяем уникальность title, если он изменяется
+        if "title" in update_data and update_data["title"] != existing_hotel.title:
+            if await self.exists_by_title(update_data["title"], exclude_hotel_id=hotel_id):
+                raise ValueError(f"Отель с названием '{update_data['title']}' уже существует")
+        
+        # Обновляем отель, если есть что обновлять
+        if update_data:
+            await self.update(id=hotel_id, **update_data)
+        
+        # Возвращаем обновленный отель
+        updated_hotel = await self.get_by_id(hotel_id)
+        if updated_hotel is None:
+            raise ValueError("Отель не найден")
+        
+        return updated_hotel
 

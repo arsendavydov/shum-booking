@@ -4,7 +4,7 @@ from fastapi_cache.decorator import cache
 from fastapi_cache import FastAPICache
 from src.schemas.countries import Country, CountryPATCH, SchemaCountry
 from src.schemas import MessageResponse
-from src.api import PaginationDep, DBDep, get_or_404
+from src.api import PaginationDep, DBDep, get_or_404, handle_validation_error
 from src.utils.db_manager import DBManager
 
 COUNTRIES_CACHE_TTL = 300
@@ -110,24 +110,13 @@ async def create_country(
     """
     async with DBManager.transaction(db):
         repo = DBManager.get_countries_repository(db)
-        
-        # Проверяем уникальность name
-        existing_by_name = await repo.get_by_name_case_insensitive(country.name)
-        if existing_by_name is not None:
-            raise HTTPException(
-                status_code=409,
-                detail=f"Страна с названием '{country.name}' уже существует"
+        try:
+            await repo.create_country_with_validation(
+                name=country.name,
+                iso_code=country.iso_code
             )
-        
-        # Проверяем уникальность iso_code
-        existing_by_iso = await repo.get_by_iso_code(country.iso_code)
-        if existing_by_iso is not None:
-            raise HTTPException(
-                status_code=409,
-                detail=f"Страна с ISO кодом '{country.iso_code.upper()}' уже существует"
-            )
-        
-        await repo.create(name=country.name, iso_code=country.iso_code.upper())
+        except ValueError as e:
+            raise handle_validation_error(e)
     
     # Инвалидируем кэш стран
     await FastAPICache.clear(namespace="countries")
@@ -163,38 +152,14 @@ async def update_country(
     """
     async with DBManager.transaction(db):
         repo = DBManager.get_countries_repository(db)
-        
-        # Проверяем существование страны
-        existing_country = await repo._get_one_by_id_exact(country_id)
-        if existing_country is None:
-            raise HTTPException(status_code=404, detail="Страна не найдена")
-        
-        # Проверяем уникальность name, если он изменяется
-        if country.name != existing_country.name:
-            existing_by_name = await repo.get_by_name_case_insensitive(country.name)
-            if existing_by_name is not None:
-                raise HTTPException(
-                    status_code=409,
-                    detail=f"Страна с названием '{country.name}' уже существует"
-                )
-        
-        # Проверяем уникальность iso_code, если он изменяется
-        if country.iso_code.upper() != existing_country.iso_code:
-            existing_by_iso = await repo.get_by_iso_code(country.iso_code)
-            if existing_by_iso is not None:
-                raise HTTPException(
-                    status_code=409,
-                    detail=f"Страна с ISO кодом '{country.iso_code.upper()}' уже существует"
-                )
-        
-        updated_country = await repo.edit(
-            id=country_id,
-            name=country.name,
-            iso_code=country.iso_code.upper()
-        )
-        
-        if updated_country is None:
-            raise HTTPException(status_code=404, detail="Страна не найдена")
+        try:
+            await repo.update_country_with_validation(
+                country_id=country_id,
+                name=country.name,
+                iso_code=country.iso_code
+            )
+        except ValueError as e:
+            raise handle_validation_error(e)
     
     # Инвалидируем кэш стран
     await FastAPICache.clear(namespace="countries")
@@ -230,44 +195,14 @@ async def partial_update_country(
     """
     async with DBManager.transaction(db):
         repo = DBManager.get_countries_repository(db)
-        
-        # Проверяем существование страны
-        existing_country = await repo._get_one_by_id_exact(country_id)
-        if existing_country is None:
-            raise HTTPException(status_code=404, detail="Страна не найдена")
-        
-        update_data = {}
-        
-        # Проверяем и добавляем name, если указан
-        if country.name is not None:
-            if country.name != existing_country.name:
-                existing_by_name = await repo.get_by_name_case_insensitive(country.name)
-                if existing_by_name is not None:
-                    raise HTTPException(
-                        status_code=409,
-                        detail=f"Страна с названием '{country.name}' уже существует"
-                    )
-            update_data["name"] = country.name
-        
-        # Проверяем и добавляем iso_code, если указан
-        if country.iso_code is not None:
-            iso_code_upper = country.iso_code.upper()
-            if iso_code_upper != existing_country.iso_code:
-                existing_by_iso = await repo.get_by_iso_code(country.iso_code)
-                if existing_by_iso is not None:
-                    raise HTTPException(
-                        status_code=409,
-                        detail=f"Страна с ISO кодом '{iso_code_upper}' уже существует"
-                    )
-            update_data["iso_code"] = iso_code_upper
-        
-        if not update_data:
-            return MessageResponse(status="OK")
-        
-        updated_country = await repo.edit(id=country_id, **update_data)
-        
-        if updated_country is None:
-            raise HTTPException(status_code=404, detail="Страна не найдена")
+        try:
+            await repo.partial_update_country_with_validation(
+                country_id=country_id,
+                name=country.name,
+                iso_code=country.iso_code
+            )
+        except ValueError as e:
+            raise handle_validation_error(e)
     
     # Инвалидируем кэш стран
     await FastAPICache.clear(namespace="countries")

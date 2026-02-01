@@ -41,6 +41,23 @@ class TestHotels:
         response = client.get("/hotels/invalid_id")
         assert response.status_code == 422
     
+    @pytest.mark.parametrize("method,endpoint,json_data", [
+        ("put", "/hotels/99999", {"title": "Test", "city": "Москва", "address": "Test address", "postal_code": "101002"}),
+        ("patch", "/hotels/99999", {"title": "Test"}),
+        ("delete", "/hotels/99999", None),
+    ])
+    def test_hotel_nonexistent_operations(self, client, method, endpoint, json_data):
+        """Операции с несуществующим отелем"""
+        if json_data is None:
+            response = client.delete(endpoint)
+        elif method == "put":
+            response = client.put(endpoint, json=json_data)
+        else:
+            response = client.patch(endpoint, json=json_data)
+        
+        assert response.status_code == 404
+        assert "не найден" in response.json()["detail"]
+    
     def test_create_hotel(self, client, test_prefix, created_hotel_ids):
         """Создание отеля"""
         response = client.post(
@@ -61,28 +78,14 @@ class TestHotels:
             test_hotel_id = response.json()[0]["id"]
             created_hotel_ids.append(test_hotel_id)
     
-    def test_create_hotel_missing_title(self, client):
-        """Создание отеля без title"""
-        response = client.post(
-            "/hotels",
-            json={"city": "Москва", "address": "Тестовая улица, 1"}
-        )
-        assert response.status_code == 422
-    
-    def test_create_hotel_missing_city(self, client):
-        """Создание отеля без city"""
-        response = client.post(
-            "/hotels",
-            json={"title": "Тест Отель", "address": "Тестовая улица, 1"}
-        )
-        assert response.status_code == 422
-    
-    def test_create_hotel_missing_address(self, client):
-        """Создание отеля без address"""
-        response = client.post(
-            "/hotels",
-            json={"title": "Тест Отель", "city": "Москва"}
-        )
+    @pytest.mark.parametrize("missing_field,json_data", [
+        ("title", {"city": "Москва", "address": "Тестовая улица, 1"}),
+        ("city", {"title": "Тест Отель", "address": "Тестовая улица, 1"}),
+        ("address", {"title": "Тест Отель", "city": "Москва"}),
+    ])
+    def test_create_hotel_missing_field(self, client, missing_field, json_data):
+        """Создание отеля без обязательного поля"""
+        response = client.post("/hotels", json=json_data)
         assert response.status_code == 422
     
     def test_create_hotel_invalid_city(self, client):
@@ -112,50 +115,19 @@ class TestHotels:
         assert response.status_code == 200
         assert response.json() == {"status": "OK"}
     
-    def test_update_hotel_missing_title(self, client, created_hotel_ids):
-        """Обновление отеля без title"""
+    @pytest.mark.parametrize("missing_field,json_data", [
+        ("title", {"city": "Москва", "address": "Обновленный адрес, 1"}),
+        ("city", {"title": "Обновленный Отель", "address": "Обновленный адрес, 1"}),
+        ("address", {"title": "Обновленный Отель", "city": "Москва"}),
+    ])
+    def test_update_hotel_missing_field(self, client, created_hotel_ids, missing_field, json_data):
+        """Обновление отеля без обязательного поля"""
         if not created_hotel_ids:
             return
         
         hotel_id = created_hotel_ids[-1]
-        response = client.put(
-            f"/hotels/{hotel_id}",
-            json={"city": "Москва", "address": "Обновленный адрес, 1"}
-        )
+        response = client.put(f"/hotels/{hotel_id}", json=json_data)
         assert response.status_code == 422
-    
-    def test_update_hotel_missing_city(self, client, created_hotel_ids):
-        """Обновление отеля без city"""
-        if not created_hotel_ids:
-            return
-        
-        hotel_id = created_hotel_ids[-1]
-        response = client.put(
-            f"/hotels/{hotel_id}",
-            json={"title": "Обновленный Отель", "address": "Обновленный адрес, 1"}
-        )
-        assert response.status_code == 422
-    
-    def test_update_hotel_missing_address(self, client, created_hotel_ids):
-        """Обновление отеля без address"""
-        if not created_hotel_ids:
-            return
-        
-        hotel_id = created_hotel_ids[-1]
-        response = client.put(
-            f"/hotels/{hotel_id}",
-            json={"title": "Обновленный Отель", "city": "Москва"}
-        )
-        assert response.status_code == 422
-    
-    def test_update_nonexistent_hotel(self, client):
-        """Обновление несуществующего отеля"""
-        response = client.put(
-            "/hotels/99999",
-            json={"title": "Test", "city": "Москва", "address": "Test address", "postal_code": "101002"}
-        )
-        assert response.status_code == 404
-        assert "не найден" in response.json()["detail"]
     
     def test_update_hotel_invalid_city(self, client, created_hotel_ids):
         """Обновление отеля с несуществующим городом"""
@@ -170,61 +142,26 @@ class TestHotels:
         assert response.status_code == 404
         assert "не найден" in response.json()["detail"]
     
-    def test_partial_update_hotel_title(self, client, created_hotel_ids):
-        """Частичное обновление title отеля"""
+    @pytest.mark.parametrize("field,value,verify_field", [
+        ("title", "Частично Обновленный Отель", None),
+        ("address", "Новый адрес, 1", None),
+        ("postal_code", "101004", "postal_code"),
+        ("city", "Москва", None),
+    ])
+    def test_partial_update_hotel_field(self, client, created_hotel_ids, field, value, verify_field):
+        """Частичное обновление поля отеля"""
         if len(created_hotel_ids) <= 1:
             return
         
         hotel_id = created_hotel_ids[1]
-        response = client.patch(
-            f"/hotels/{hotel_id}",
-            json={"title": "Частично Обновленный Отель"}
-        )
-        assert response.status_code == 200
-        assert response.json() == {"status": "OK"}
-    
-    def test_partial_update_hotel_address(self, client, created_hotel_ids):
-        """Частичное обновление address отеля"""
-        if len(created_hotel_ids) <= 1:
-            return
-        
-        hotel_id = created_hotel_ids[1]
-        response = client.patch(
-            f"/hotels/{hotel_id}",
-            json={"address": "Новый адрес, 1"}
-        )
-        assert response.status_code == 200
-        assert response.json() == {"status": "OK"}
-    
-    def test_partial_update_hotel_postal_code(self, client, created_hotel_ids):
-        """Частичное обновление postal_code отеля"""
-        if len(created_hotel_ids) <= 1:
-            return
-        
-        hotel_id = created_hotel_ids[1]
-        response = client.patch(
-            f"/hotels/{hotel_id}",
-            json={"postal_code": "101004"}
-        )
+        response = client.patch(f"/hotels/{hotel_id}", json={field: value})
         assert response.status_code == 200
         assert response.json() == {"status": "OK"}
         
-        get_response = client.get(f"/hotels/{hotel_id}")
-        assert get_response.status_code == 200
-        assert get_response.json()["postal_code"] == "101004"
-    
-    def test_partial_update_hotel_city(self, client, created_hotel_ids):
-        """Частичное обновление city отеля"""
-        if len(created_hotel_ids) <= 1:
-            return
-        
-        hotel_id = created_hotel_ids[1]
-        response = client.patch(
-            f"/hotels/{hotel_id}",
-            json={"city": "Москва"}
-        )
-        assert response.status_code == 200
-        assert response.json() == {"status": "OK"}
+        if verify_field:
+            get_response = client.get(f"/hotels/{hotel_id}")
+            assert get_response.status_code == 200
+            assert get_response.json()[verify_field] == value
     
     def test_partial_update_hotel_both_fields(self, client, created_hotel_ids):
         """Частичное обновление нескольких полей отеля"""
@@ -262,12 +199,6 @@ class TestHotels:
         assert response.status_code == 200
         assert response.json() == {"status": "OK"}
     
-    def test_partial_update_nonexistent_hotel(self, client):
-        """Частичное обновление несуществующего отеля"""
-        response = client.patch("/hotels/99999", json={"title": "Test"})
-        assert response.status_code == 404
-        assert "не найден" in response.json()["detail"]
-    
     def test_delete_hotel(self, client, created_hotel_ids):
         """Удаление отеля"""
         if not created_hotel_ids:
@@ -279,9 +210,4 @@ class TestHotels:
         assert response.json() == {"status": "OK"}
         created_hotel_ids.remove(hotel_id)
     
-    def test_delete_nonexistent_hotel(self, client):
-        """Удаление несуществующего отеля"""
-        response = client.delete("/hotels/99999")
-        assert response.status_code == 404
-        assert "не найден" in response.json()["detail"]
 

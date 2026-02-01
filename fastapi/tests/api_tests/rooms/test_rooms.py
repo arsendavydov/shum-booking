@@ -128,20 +128,26 @@ class TestRooms:
                 assert response.status_code == 200
                 assert response.json() == {"status": "OK"}
     
-    def test_update_nonexistent_room(self, client, created_hotel_ids, test_prefix):
-        """Обновление несуществующего номера"""
+    @pytest.mark.parametrize("method,json_data", [
+        ("put", {"title": "Test", "price": 1000, "quantity": 1}),
+        ("patch", {"title": "Test"}),
+        ("delete", None),
+    ])
+    def test_room_nonexistent_operations(self, client, created_hotel_ids, method, json_data):
+        """Операции с несуществующим номером"""
         if not created_hotel_ids:
             return
         
         hotel_id = created_hotel_ids[-1]
-        response = client.put(
-            f"/hotels/{hotel_id}/rooms/99999",
-            json={
-                "title": f"{test_prefix} Test",
-                "price": 1000,
-                "quantity": 1
-            }
-        )
+        endpoint = f"/hotels/{hotel_id}/rooms/99999"
+        
+        if json_data is None:
+            response = client.delete(endpoint)
+        elif method == "put":
+            response = client.put(endpoint, json=json_data)
+        else:
+            response = client.patch(endpoint, json=json_data)
+        
         assert response.status_code == 404
     
     def test_partial_update_room(self, client, created_hotel_ids, test_prefix):
@@ -162,18 +168,6 @@ class TestRooms:
                 assert response.status_code == 200
                 assert response.json() == {"status": "OK"}
     
-    def test_partial_update_nonexistent_room(self, client, created_hotel_ids, test_prefix):
-        """Частичное обновление несуществующего номера"""
-        if not created_hotel_ids:
-            return
-        
-        hotel_id = created_hotel_ids[-1]
-        response = client.patch(
-            f"/hotels/{hotel_id}/rooms/99999",
-            json={"title": f"{test_prefix} Test"}
-        )
-        assert response.status_code == 404
-    
     def test_delete_room(self, client, created_hotel_ids, created_room_ids):
         """Удаление номера"""
         if not created_room_ids or not created_hotel_ids:
@@ -185,15 +179,6 @@ class TestRooms:
         assert response.status_code == 200
         assert response.json() == {"status": "OK"}
         created_room_ids.remove(room_id)
-    
-    def test_delete_nonexistent_room(self, client, created_hotel_ids):
-        """Удаление несуществующего номера"""
-        if not created_hotel_ids:
-            return
-        
-        hotel_id = created_hotel_ids[-1]
-        response = client.delete(f"/hotels/{hotel_id}/rooms/99999")
-        assert response.status_code == 404
     
     def test_get_available_rooms(self, client, created_hotel_ids):
         """Получение доступных номеров на период"""

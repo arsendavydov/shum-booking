@@ -141,12 +141,20 @@ class TestCities:
                     client.delete(f"/cities/{city_id}")
                 client.delete(f"/countries/{country_id}")
     
-    def test_update_nonexistent_city(self, client):
-        """Обновление несуществующего города"""
-        response = client.put(
-            "/cities/99999",
-            json={"name": "Тест", "country_id": 1}
-        )
+    @pytest.mark.parametrize("method,endpoint,json_data", [
+        ("put", "/cities/99999", {"name": "Тест", "country_id": 1}),
+        ("patch", "/cities/99999", {"name": "Test"}),
+        ("delete", "/cities/99999", None),
+    ])
+    def test_city_nonexistent_operations(self, client, method, endpoint, json_data):
+        """Операции с несуществующим городом"""
+        if json_data is None:
+            response = client.delete(endpoint)
+        elif method == "put":
+            response = client.put(endpoint, json=json_data)
+        else:
+            response = client.patch(endpoint, json=json_data)
+        
         assert response.status_code == 404
     
     def test_partial_update_city(self, client, test_prefix):
@@ -183,14 +191,6 @@ class TestCities:
                     client.delete(f"/cities/{city_id}")
                 client.delete(f"/countries/{country_id}")
     
-    def test_partial_update_nonexistent_city(self, client):
-        """Частичное обновление несуществующего города"""
-        response = client.patch(
-            "/cities/99999",
-            json={"name": "Test"}
-        )
-        assert response.status_code == 404
-    
     def test_delete_city(self, client, test_prefix):
         """Удаление города"""
         # Сначала создаем страну
@@ -218,11 +218,6 @@ class TestCities:
                     assert get_response.status_code == 404
                     
                 client.delete(f"/countries/{country_id}")
-    
-    def test_delete_nonexistent_city(self, client):
-        """Удаление несуществующего города"""
-        response = client.delete("/cities/99999")
-        assert response.status_code == 404
     
     def test_filter_cities_by_name(self, client, test_prefix):
         """фильтрации городов по названию"""

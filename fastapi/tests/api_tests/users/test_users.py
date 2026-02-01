@@ -66,15 +66,20 @@ class TestUsers:
         assert response.status_code == 200
         assert response.json() == {"status": "OK"}
     
-    def test_update_nonexistent_user(self, client):
-        """Обновление несуществующего пользователя"""
-        response = client.put(
-            "/users/99999",
-            json={
-                "email": f"test@{TEST_EXAMPLE_EMAIL_DOMAIN}",
-                "hashed_password": "pass123"
-            }
-        )
+    @pytest.mark.parametrize("method,endpoint,json_data", [
+        ("put", "/users/99999", {"email": f"test@{TEST_EXAMPLE_EMAIL_DOMAIN}", "hashed_password": "pass123"}),
+        ("patch", "/users/99999", {"first_name": "Test"}),
+        ("delete", "/users/99999", None),
+    ])
+    def test_user_nonexistent_operations(self, client, method, endpoint, json_data):
+        """Операции с несуществующим пользователем"""
+        if json_data is None:
+            response = client.delete(endpoint)
+        elif method == "put":
+            response = client.put(endpoint, json=json_data)
+        else:
+            response = client.patch(endpoint, json=json_data)
+        
         assert response.status_code == 404
     
     def test_partial_update_user(self, client, created_user_ids):
@@ -90,14 +95,6 @@ class TestUsers:
         assert response.status_code == 200
         assert response.json() == {"status": "OK"}
     
-    def test_partial_update_nonexistent_user(self, client):
-        """Частичное обновление несуществующего пользователя"""
-        response = client.patch(
-            "/users/99999",
-            json={"first_name": "Test"}
-        )
-        assert response.status_code == 404
-    
     def test_delete_user(self, client, created_user_ids):
         """Удаление пользователя"""
         if not created_user_ids:
@@ -108,9 +105,4 @@ class TestUsers:
         assert response.status_code == 200
         assert response.json() == {"status": "OK"}
         created_user_ids.remove(user_id)
-    
-    def test_delete_nonexistent_user(self, client):
-        """Удаление несуществующего пользователя"""
-        response = client.delete("/users/99999")
-        assert response.status_code == 404
 

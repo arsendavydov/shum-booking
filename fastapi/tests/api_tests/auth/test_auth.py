@@ -76,46 +76,22 @@ class TestAuth:
         assert response.status_code == 409
         assert "уже существует" in response.json()["detail"]
     
-    def test_register_user_invalid_email(self, client):
-        """Регистрация с невалидным email"""
-        response = client.post(
-            "/auth/register",
-            json={
-                "email": "invalid-email",
-                "password": TEST_PASSWORD
-            }
-        )
-        assert response.status_code == 422
+    @pytest.mark.parametrize("invalid_data,expected_status", [
+        ({"email": "invalid-email", "password": TEST_PASSWORD}, 422),
+        ({"email": f"shortpass@{TEST_EXAMPLE_EMAIL_DOMAIN}", "password": "short"}, 422),
+    ])
+    def test_register_user_invalid_data(self, client, invalid_data, expected_status):
+        """Регистрация с невалидными данными"""
+        response = client.post("/auth/register", json=invalid_data)
+        assert response.status_code == expected_status
     
-    def test_register_user_short_password(self, client):
-        """Регистрация с коротким паролем"""
-        response = client.post(
-            "/auth/register",
-            json={
-                "email": f"shortpass@{TEST_EXAMPLE_EMAIL_DOMAIN}",
-                "password": "short"
-            }
-        )
-        assert response.status_code == 422
-    
-    def test_register_user_missing_email(self, client):
-        """Регистрация без email"""
-        response = client.post(
-            "/auth/register",
-            json={
-                "password": TEST_PASSWORD
-            }
-        )
-        assert response.status_code == 422
-    
-    def test_register_user_missing_password(self, client):
-        """Регистрация без password"""
-        response = client.post(
-            "/auth/register",
-            json={
-                "email": f"nopass@{TEST_EXAMPLE_EMAIL_DOMAIN}"
-            }
-        )
+    @pytest.mark.parametrize("missing_field,json_data", [
+        ("email", {"password": TEST_PASSWORD}),
+        ("password", {"email": f"nopass@{TEST_EXAMPLE_EMAIL_DOMAIN}"}),
+    ])
+    def test_register_user_missing_field(self, client, missing_field, json_data):
+        """Регистрация без обязательного поля"""
+        response = client.post("/auth/register", json=json_data)
         assert response.status_code == 422
     
     def test_login_user_success(self, client, test_prefix, created_user_ids):
@@ -191,33 +167,16 @@ class TestAuth:
     
     def test_login_user_invalid_email(self, client):
         """Вход с невалидным email"""
-        response = client.post(
-            "/auth/login",
-            json={
-                "email": "invalid-email",
-                "password": TEST_PASSWORD
-            }
-        )
+        response = client.post("/auth/login", json={"email": "invalid-email", "password": TEST_PASSWORD})
         assert response.status_code == 422
     
-    def test_login_user_missing_email(self, client):
-        """Вход без email"""
-        response = client.post(
-            "/auth/login",
-            json={
-                "password": TEST_PASSWORD
-            }
-        )
-        assert response.status_code == 422
-    
-    def test_login_user_missing_password(self, client):
-        """Вход без password"""
-        response = client.post(
-            "/auth/login",
-            json={
-                "email": f"user@{TEST_EXAMPLE_EMAIL_DOMAIN}"
-            }
-        )
+    @pytest.mark.parametrize("missing_field,json_data", [
+        ("email", {"password": TEST_PASSWORD}),
+        ("password", {"email": f"user@{TEST_EXAMPLE_EMAIL_DOMAIN}"}),
+    ])
+    def test_login_user_missing_field(self, client, missing_field, json_data):
+        """Вход без обязательного поля"""
+        response = client.post("/auth/login", json=json_data)
         assert response.status_code == 422
     
     def test_get_current_user_success_with_cookie(self, client, test_prefix, created_user_ids):

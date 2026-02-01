@@ -15,121 +15,96 @@ from logging.handlers import RotatingFileHandler
 LOGS_DIR = Path(__file__).resolve().parent.parent.parent / "logs"
 LOGS_DIR.mkdir(exist_ok=True)
 
-# Путь к файлу логов
-LOG_FILE = LOGS_DIR / "app.log"
-
 # Формат логов
 LOG_FORMAT = "[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s"
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
+# Константы для handlers
+MAX_BYTES = 10 * 1024 * 1024  # 10 МБ
+BACKUP_COUNT = 5
 
-def setup_logging(log_level: str = None) -> logging.Logger:
+
+def _get_log_level() -> str:
+    """Получить уровень логирования из settings или переменных окружения."""
+    try:
+        from src.config import settings
+        return getattr(settings, 'LOG_LEVEL', 'INFO')
+    except Exception:
+        return os.getenv('LOG_LEVEL', 'INFO')
+
+
+def _create_handlers(log_file: Path, level: int):
+    """Создать file и console handlers с общим форматтером."""
+    formatter = logging.Formatter(LOG_FORMAT, datefmt=DATE_FORMAT)
+    
+    file_handler = RotatingFileHandler(
+        log_file,
+        maxBytes=MAX_BYTES,
+        backupCount=BACKUP_COUNT,
+        encoding='utf-8'
+    )
+    file_handler.setLevel(level)
+    file_handler.setFormatter(formatter)
+    
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(level)
+    console_handler.setFormatter(formatter)
+    
+    return file_handler, console_handler
+
+
+def setup_logging(log_level: str = None, log_file_name: str = "app.log"):
     """
     Настроить систему логирования для приложения.
     
     Args:
         log_level: Уровень логирования (DEBUG, INFO, WARNING, ERROR, CRITICAL).
                   Если не указан, берется из settings.LOG_LEVEL или по умолчанию INFO.
-    
-    Returns:
-        Настроенный root logger
+        log_file_name: Имя файла для логов (по умолчанию "app.log")
     """
     # Получаем уровень логирования
     if log_level is None:
-        # Пытаемся получить из settings, если доступен, иначе из переменных окружения
-        try:
-            from src.config import settings
-            log_level = getattr(settings, 'LOG_LEVEL', 'INFO')
-        except Exception:
-            log_level = os.getenv('LOG_LEVEL', 'INFO')
+        log_level = _get_log_level()
     
     level = getattr(logging, log_level.upper(), logging.INFO)
+    log_file = LOGS_DIR / log_file_name
     
-    # Создаем root logger
+    # Создаем handlers
+    file_handler, console_handler = _create_handlers(log_file, level)
+    
+    # Настраиваем root logger
     root_logger = logging.getLogger()
     root_logger.setLevel(level)
-    
-    # Очищаем существующие handlers
     root_logger.handlers.clear()
-    
-    # Форматтер
-    formatter = logging.Formatter(LOG_FORMAT, datefmt=DATE_FORMAT)
-    
-    # Handler для файла (с ротацией)
-    file_handler = RotatingFileHandler(
-        LOG_FILE,
-        maxBytes=10 * 1024 * 1024,  # 10 МБ
-        backupCount=5,  # Храним 5 файлов
-        encoding='utf-8'
-    )
-    file_handler.setLevel(level)
-    file_handler.setFormatter(formatter)
     root_logger.addHandler(file_handler)
-    
-    # Handler для консоли (stdout)
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(level)
-    console_handler.setFormatter(formatter)
     root_logger.addHandler(console_handler)
     
-    # Настраиваем логирование для сторонних библиотек
-    # Uvicorn - используем propagate=True, чтобы логи шли через root logger
-    uvicorn_logger = logging.getLogger("uvicorn")
-    uvicorn_logger.setLevel(level)
-    uvicorn_logger.handlers.clear()
-    uvicorn_logger.propagate = True  # Пропагируем в root logger
+    # Настраиваем логгеры для сторонних библиотек
+    # Логгеры, которые должны пропагировать в root logger
+    propagate_loggers = [
+        "uvicorn",
+        "uvicorn.error",
+        "fastapi",
+        "celery",
+        "celery.task",
+        "celery.worker",
+        "alembic",
+        "alembic.runtime.migration",
+    ]
     
-    # Uvicorn access (HTTP запросы)
-    uvicorn_access_logger = logging.getLogger("uvicorn.access")
-    uvicorn_access_logger.setLevel(level)
-    uvicorn_access_logger.handlers.clear()
-    uvicorn_access_logger.propagate = True  # Пропагируем в root logger
+    for logger_name in propagate_loggers:
+        logger = logging.getLogger(logger_name)
+        logger.setLevel(level)
+        logger.handlers.clear()
+        logger.propagate = True
     
-    # FastAPI - используем propagate=True
-    fastapi_logger = logging.getLogger("fastapi")
-    fastapi_logger.setLevel(level)
-    fastapi_logger.handlers.clear()
-    fastapi_logger.propagate = True  # Пропагируем в root logger
-    
-    # SQLAlchemy (опционально, можно отключить для уменьшения объема логов)
+    # SQLAlchemy - только WARNING и выше, не пропагирует
     sqlalchemy_logger = logging.getLogger("sqlalchemy.engine")
-    sqlalchemy_logger.setLevel(logging.WARNING)  # Только WARNING и выше для SQLAlchemy
+    sqlalchemy_logger.setLevel(logging.WARNING)
     sqlalchemy_logger.handlers.clear()
     sqlalchemy_logger.addHandler(file_handler)
     sqlalchemy_logger.addHandler(console_handler)
     sqlalchemy_logger.propagate = False
-    
-    # Celery - используем propagate=True
-    celery_logger = logging.getLogger("celery")
-    celery_logger.setLevel(level)
-    celery_logger.handlers.clear()
-    celery_logger.propagate = True  # Пропагируем в root logger
-    
-    # Celery task
-    celery_task_logger = logging.getLogger("celery.task")
-    celery_task_logger.setLevel(level)
-    celery_task_logger.handlers.clear()
-    celery_task_logger.propagate = True  # Пропагируем в root logger
-    
-    # Celery worker
-    celery_worker_logger = logging.getLogger("celery.worker")
-    celery_worker_logger.setLevel(level)
-    celery_worker_logger.handlers.clear()
-    celery_worker_logger.propagate = True  # Пропагируем в root logger
-    
-    # Alembic - используем propagate=True
-    alembic_logger = logging.getLogger("alembic")
-    alembic_logger.setLevel(level)
-    alembic_logger.handlers.clear()
-    alembic_logger.propagate = True  # Пропагируем в root logger
-    
-    # Alembic runtime (миграции)
-    alembic_runtime_logger = logging.getLogger("alembic.runtime.migration")
-    alembic_runtime_logger.setLevel(level)
-    alembic_runtime_logger.handlers.clear()
-    alembic_runtime_logger.propagate = True  # Пропагируем в root logger
-    
-    return root_logger
 
 
 def get_logger(name: str) -> logging.Logger:
