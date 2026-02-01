@@ -2,8 +2,8 @@ from fastapi import APIRouter, Body, HTTPException, Query
 
 from src.api import DBDep, PaginationDep
 from src.schemas import MessageResponse
-from src.utils.api_helpers import get_or_404
 from src.schemas.users import SchemaUser, UserPATCH, UserRegister
+from src.utils.api_helpers import get_or_404
 from src.utils.db_manager import DBManager
 
 router = APIRouter()

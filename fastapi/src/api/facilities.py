@@ -4,8 +4,8 @@ from fastapi_cache.decorator import cache
 
 from src.api import DBDep, PaginationDep
 from src.schemas import MessageResponse
-from src.utils.api_helpers import get_or_404
 from src.schemas.facilities import Facility, SchemaFacility
+from src.utils.api_helpers import get_or_404
 from src.utils.db_manager import DBManager
 
 # Время жизни кэша для facilities (явно задано)

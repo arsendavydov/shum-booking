@@ -32,4 +32,3 @@ class HTTPLoggingMiddleware(BaseHTTPMiddleware):
         root_logger.info(log_message)
 
         return response
-

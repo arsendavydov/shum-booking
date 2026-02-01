@@ -6,10 +6,9 @@
 """
 
 from datetime import date
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import func
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from sqlalchemy.sql.selectable import Select as SelectType

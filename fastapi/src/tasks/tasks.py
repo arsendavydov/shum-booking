@@ -44,7 +44,9 @@ def get_db_session(db_name: str) -> Session:
 
 
 @celery_app.task(bind=True, name="process_image")
-def process_image(_self: Task, hotel_id: int, original_filename: str, temp_file_path: str, db_name: str) -> dict[str, Any]:
+def process_image(
+    _self: Task, hotel_id: int, original_filename: str, temp_file_path: str, db_name: str
+) -> dict[str, Any]:
     """
     Обработка изображения: проверка размера, создание записи в БД, ресайз и сохранение.
 
