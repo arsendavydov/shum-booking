@@ -1,19 +1,9 @@
 # PostgreSQL data
 postgres_data/
 
+# Environment variables
 *.env
 .fastapicloud/
-.pytest_cache/
-.ruff_cache/
-.vscode/
-*.md
-*.txt
-*.DS_Store
-test_api.py
-
-# Celery
-celerybeat-schedule
-celerybeat.pid
 
 # Python
 __pycache__/
@@ -24,7 +14,54 @@ __pycache__/
 venv/
 env/
 ENV/
+*.egg-info/
+dist/
+build/
+
+# Testing
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# Linting & Formatting
+.ruff_cache/
+
+# Type checkers
+.mypy_cache/
+.pyright/
+.dmypy.json
+dmypy.json
+
+# IDE
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
 
 # Логи
 logs/
 *.log
+
+# Временные файлы
+*.tmp
+*.bak
+
+# Документация (опционально, если не хотите коммитить)
+*.md
+*.txt
+test_api.py

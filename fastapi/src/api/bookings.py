@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Body, HTTPException
 
-from src.api import CurrentUserDep, DBDep, PaginationDep
+from src.api.dependencies import CurrentUserDep, DBDep, PaginationDep
 from src.schemas import MessageResponse
 from src.schemas.bookings import Booking, SchemaBooking
 from src.utils.api_helpers import handle_validation_error

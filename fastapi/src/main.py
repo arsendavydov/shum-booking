@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI
+from sqlalchemy.exc import DatabaseError
 
 from src.api import (
     auth_router,
@@ -15,6 +16,7 @@ from src.api import (
     users_router,
 )
 from src.config import settings
+from src.middleware.exception_handler import database_exception_handler, general_exception_handler
 from src.middleware.http_logging import HTTPLoggingMiddleware
 from src.utils.logger import setup_logging
 from src.utils.startup import shutdown_handler, startup_handler
@@ -35,6 +37,9 @@ app = FastAPI(lifespan=lifespan)
 
 if settings.DB_NAME != "test":
     app.add_middleware(HTTPLoggingMiddleware)
+
+app.add_exception_handler(DatabaseError, database_exception_handler)
+app.add_exception_handler(Exception, general_exception_handler)
 
 app.include_router(auth_router, prefix="/auth", tags=["Аутентификация"])
 app.include_router(users_router, prefix="/users", tags=["Пользователи"])

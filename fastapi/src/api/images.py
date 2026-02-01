@@ -6,7 +6,7 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi import Path as PathParam
 from PIL import Image as PILImage
 
-from src.api import DBDep
+from src.api.dependencies import DBDep
 from src.config import settings
 from src.schemas import MessageResponse
 from src.schemas.images import ImageUploadResponse, SchemaImage

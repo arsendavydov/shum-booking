@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Body, HTTPException, Query
 
-from src.api import DBDep, PaginationDep
+from src.api.dependencies import DBDep, PaginationDep
 from src.schemas import MessageResponse
 from src.schemas.users import SchemaUser, UserPATCH, UserRegister
 from src.utils.api_helpers import get_or_404

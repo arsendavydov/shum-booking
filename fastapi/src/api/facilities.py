@@ -2,7 +2,7 @@ from fastapi import APIRouter, Body, HTTPException, Path, Query
 from fastapi_cache import FastAPICache
 from fastapi_cache.decorator import cache
 
-from src.api import DBDep, PaginationDep
+from src.api.dependencies import DBDep, PaginationDep
 from src.schemas import MessageResponse
 from src.schemas.facilities import Facility, SchemaFacility
 from src.utils.api_helpers import get_or_404

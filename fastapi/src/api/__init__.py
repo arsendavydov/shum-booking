@@ -1,10 +1,11 @@
 # Экспорт зависимостей (импортируем первыми, чтобы избежать циклических импортов)
+from src.api.dependencies import AuthServiceDep, CurrentUserDep, DBDep, PaginationDep
+
 # Экспорт роутеров (импортируем после зависимостей)
 from src.api.auth import router as auth_router
 from src.api.bookings import router as bookings_router
 from src.api.cities import router as cities_router
 from src.api.countries import router as countries_router
-from src.api.dependencies import AuthServiceDep, CurrentUserDep, DBDep, PaginationDep
 from src.api.facilities import router as facilities_router
 from src.api.hotels import router as hotels_router
 from src.api.images import router as images_router

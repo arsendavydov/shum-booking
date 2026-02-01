@@ -4,7 +4,7 @@ from fastapi import APIRouter, Body, HTTPException, Query
 from fastapi_cache import FastAPICache
 from fastapi_cache.decorator import cache
 
-from src.api import DBDep, PaginationDep
+from src.api.dependencies import DBDep, PaginationDep
 from src.api.dependencies import RoomsRepositoryDepWrite
 from src.schemas import MessageResponse
 from src.schemas.rooms import Room, RoomPATCH, SchemaRoom, SchemaRoomAvailable

@@ -3,7 +3,7 @@ from datetime import date
 from fastapi import APIRouter, Body, HTTPException, Query
 from fastapi_cache.decorator import cache
 
-from src.api import DBDep, PaginationDep
+from src.api.dependencies import DBDep, PaginationDep
 from src.schemas import MessageResponse
 from src.schemas.hotels import Hotel, HotelPATCH, SchemaHotel, SchemaHotelWithRooms
 from src.utils.api_helpers import get_or_404, handle_delete_operation, handle_validation_error, invalidate_cache

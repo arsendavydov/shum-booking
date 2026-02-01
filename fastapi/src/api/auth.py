@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Body, HTTPException, Response
 
-from src.api import AuthServiceDep, CurrentUserDep, DBDep
+from src.api.dependencies import AuthServiceDep, CurrentUserDep, DBDep
 from src.config import settings
 from src.schemas.common import MessageResponse
 from src.schemas.users import SchemaUser, TokenResponse, UserRequestLogin, UserRequestRegister, UserResponse
