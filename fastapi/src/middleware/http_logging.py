@@ -1,5 +1,6 @@
-import time
 import logging
+import time
+
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
@@ -8,12 +9,12 @@ root_logger = logging.getLogger()
 
 class HTTPLoggingMiddleware(BaseHTTPMiddleware):
     """Middleware для логирования HTTP запросов (только для основного приложения)."""
-    
+
     async def dispatch(self, request: Request, call_next):
         start_time = time.time()
         response = await call_next(request)
-        process_time = time.time() - start_time
-        
+        _process_time = time.time() - start_time  # Время обработки (можно использовать для метрик)
+
         client_host = request.client.host if request.client else "unknown"
         method = request.method
         path = request.url.path
@@ -24,9 +25,9 @@ class HTTPLoggingMiddleware(BaseHTTPMiddleware):
         protocol = request.scope.get("http_version", "HTTP/1.1")
         if not protocol.startswith("HTTP/"):
             protocol = f"HTTP/{protocol}"
-        
+
         log_message = f'{client_host} - "{method} {path} {protocol}" {status_code}'
         root_logger.info(log_message)
-        
+
         return response
 

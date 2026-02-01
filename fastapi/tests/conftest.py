@@ -1,11 +1,10 @@
-import pytest
-import httpx
-import time
-import os
 import asyncio
-from datetime import datetime
-from typing import Dict, List, Tuple
+import os
+import time
 from pathlib import Path
+
+import httpx
+import pytest
 from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import create_async_engine
 
@@ -22,9 +21,7 @@ TEST_PASSWORD = os.getenv("TEST_PASSWORD")
 TEST_EXAMPLE_EMAIL_DOMAIN = os.getenv("TEST_EXAMPLE_EMAIL_DOMAIN", "shum-booking.com")
 
 if not TEST_PASSWORD:
-    raise ValueError(
-        "Переменная окружения TEST_PASSWORD должна быть установлена в .test.env файле. "
-    )
+    raise ValueError("Переменная окружения TEST_PASSWORD должна быть установлена в .test.env файле. ")
 
 
 async def _recreate_test_database_async():
@@ -36,42 +33,31 @@ async def _recreate_test_database_async():
         db_username = os.getenv("DB_USERNAME", "postgres")
         db_password = os.getenv("DB_PASSWORD", "postgres")
         db_name = os.getenv("DB_NAME", "test")
-        
+
         # Создаем async engine для тестовой БД
         db_url = f"postgresql+asyncpg://{db_username}:{db_password}@{db_host}:{db_port}/{db_name}"
         engine = create_async_engine(db_url, echo=False)
-        
+
         # Импортируем Base и все модели для правильной инициализации метаданных
         from src.base import Base
-        from src.models import (
-            CountriesOrm,
-            CitiesOrm,
-            HotelsOrm,
-            RoomsOrm,
-            UsersOrm,
-            BookingsOrm,
-            FacilitiesOrm,
-            ImagesOrm,
-            hotels_images
-        )
-        
+
         # Пересоздаем все таблицы (drop_all + create_all)
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.drop_all)
             await conn.run_sync(Base.metadata.create_all)
-        
+
         await engine.dispose()
         print("✅ Таблицы в тестовой БД пересозданы через SQLAlchemy")
     except Exception as e:
         print(f"⚠️ Ошибка при пересоздании таблиц в тестовой БД: {e}")
         import traceback
+
         traceback.print_exc()
 
 
 def cleanup_test_database():
     """Пересоздает все таблицы в тестовой БД перед запуском тестов"""
     asyncio.run(_recreate_test_database_async())
-
 
 
 @pytest.fixture(scope="session")
@@ -116,7 +102,7 @@ def setup_test_city(client):
         # Проверяем, существует ли страна "Россия"
         countries_response = client.get("/countries", params={"name": "Россия", "page": 1, "per_page": 1})
         country_id = None
-        
+
         if countries_response.status_code == 200:
             countries = countries_response.json()
             for country in countries:
@@ -124,13 +110,10 @@ def setup_test_city(client):
                     country_id = country["id"]
                     print(f"✅ Страна 'Россия' уже существует с ID: {country_id}")
                     break
-        
+
         # Создаем страну "Россия", если её нет
         if country_id is None:
-            country_response = client.post(
-                "/countries",
-                json={"name": "Россия", "iso_code": "RU"}
-            )
+            country_response = client.post("/countries", json={"name": "Россия", "iso_code": "RU"})
             if country_response.status_code == 200:
                 # Получаем созданную страну
                 countries_response = client.get("/countries", params={"name": "Россия", "page": 1, "per_page": 1})
@@ -139,12 +122,14 @@ def setup_test_city(client):
                     if countries:
                         country_id = countries[0]["id"]
                         print(f"✅ Создана страна 'Россия' с ID: {country_id}")
-        
+
         # Проверяем, существует ли город "Москва"
         if country_id is not None:
-            cities_response = client.get("/cities", params={"name": "Москва", "country_id": country_id, "page": 1, "per_page": 1})
+            cities_response = client.get(
+                "/cities", params={"name": "Москва", "country_id": country_id, "page": 1, "per_page": 1}
+            )
             city_exists = False
-            
+
             if cities_response.status_code == 200:
                 cities = cities_response.json()
                 for city in cities:
@@ -152,23 +137,22 @@ def setup_test_city(client):
                         city_exists = True
                         print(f"✅ Город 'Москва' уже существует с ID: {city['id']}")
                         break
-            
+
             # Создаем город "Москва", если его нет
             if not city_exists:
-                city_response = client.post(
-                    "/cities",
-                    json={"name": "Москва", "country_id": country_id}
-                )
+                city_response = client.post("/cities", json={"name": "Москва", "country_id": country_id})
                 if city_response.status_code == 200:
-                    print(f"✅ Создан город 'Москва'")
+                    print("✅ Создан город 'Москва'")
                 else:
-                    error_detail = city_response.json().get("detail", "Unknown error") if city_response.status_code != 200 else ""
+                    error_detail = (
+                        city_response.json().get("detail", "Unknown error") if city_response.status_code != 200 else ""
+                    )
                     print(f"⚠️ Не удалось создать город 'Москва': {city_response.status_code} - {error_detail}")
     except Exception as e:
         print(f"⚠️ Ошибка при создании тестовых данных: {e}")
-    
+
     yield
-    
+
     # Cleanup не требуется - данные остаются в БД для других тестов
 
 
@@ -176,21 +160,86 @@ def setup_test_city(client):
 def created_hotel_ids(client, test_prefix):
     """Создает тестовые отели и возвращает список их ID"""
     hotels = [
-        {"title": f"{test_prefix} Отель Москва Центр 001", "city": "Москва", "address": f"{test_prefix} Тверская улица, 1", "postal_code": "101000"},
-        {"title": f"{test_prefix} Отель Москва Север 002", "city": "Москва", "address": f"{test_prefix} Ленинградский проспект, 10", "postal_code": "125040"},
-        {"title": f"{test_prefix} Отель Москва Юг 003", "city": "Москва", "address": f"{test_prefix} Варшавское шоссе, 5", "postal_code": "117105"},
-        {"title": f"{test_prefix} Отель Москва Восток 004", "city": "Москва", "address": f"{test_prefix} Энтузиастов шоссе, 2", "postal_code": "111024"},
-        {"title": f"{test_prefix} Отель Москва Запад 005", "city": "Москва", "address": f"{test_prefix} Кутузовский проспект, 50", "postal_code": "121248"},
-        {"title": f"{test_prefix} Отель Москва Кремль 006", "city": "Москва", "address": f"{test_prefix} Красная площадь, 20", "postal_code": "109012"},
-        {"title": f"{test_prefix} Отель Москва Арбат 007", "city": "Москва", "address": f"{test_prefix} Арбат, 15", "postal_code": "119002"},
-        {"title": f"{test_prefix} Отель Москва Сокольники 008", "city": "Москва", "address": f"{test_prefix} Сокольническая площадь, 7", "postal_code": "107113"},
-        {"title": f"{test_prefix} Отель Москва Измайлово 009", "city": "Москва", "address": f"{test_prefix} Измайловский проспект, 100", "postal_code": "105187"},
-        {"title": f"{test_prefix} Отель Москва ВДНХ 010", "city": "Москва", "address": f"{test_prefix} Проспект Мира, 18", "postal_code": "129223"},
-        {"title": f"{test_prefix} Отель Москва Таганка 011", "city": "Москва", "address": f"{test_prefix} Таганская площадь, 45", "postal_code": "109147"},
-        {"title": f"{test_prefix} Отель Москва Тверская 012", "city": "Москва", "address": f"{test_prefix} Тверская улица, 25", "postal_code": "103009"},
-        {"title": f"{test_prefix} Отель Москва Парк 013", "city": "Москва", "address": f"{test_prefix} Парковая аллея, 33", "postal_code": "105484"},
+        {
+            "title": f"{test_prefix} Отель Москва Центр 001",
+            "city": "Москва",
+            "address": f"{test_prefix} Тверская улица, 1",
+            "postal_code": "101000",
+        },
+        {
+            "title": f"{test_prefix} Отель Москва Север 002",
+            "city": "Москва",
+            "address": f"{test_prefix} Ленинградский проспект, 10",
+            "postal_code": "125040",
+        },
+        {
+            "title": f"{test_prefix} Отель Москва Юг 003",
+            "city": "Москва",
+            "address": f"{test_prefix} Варшавское шоссе, 5",
+            "postal_code": "117105",
+        },
+        {
+            "title": f"{test_prefix} Отель Москва Восток 004",
+            "city": "Москва",
+            "address": f"{test_prefix} Энтузиастов шоссе, 2",
+            "postal_code": "111024",
+        },
+        {
+            "title": f"{test_prefix} Отель Москва Запад 005",
+            "city": "Москва",
+            "address": f"{test_prefix} Кутузовский проспект, 50",
+            "postal_code": "121248",
+        },
+        {
+            "title": f"{test_prefix} Отель Москва Кремль 006",
+            "city": "Москва",
+            "address": f"{test_prefix} Красная площадь, 20",
+            "postal_code": "109012",
+        },
+        {
+            "title": f"{test_prefix} Отель Москва Арбат 007",
+            "city": "Москва",
+            "address": f"{test_prefix} Арбат, 15",
+            "postal_code": "119002",
+        },
+        {
+            "title": f"{test_prefix} Отель Москва Сокольники 008",
+            "city": "Москва",
+            "address": f"{test_prefix} Сокольническая площадь, 7",
+            "postal_code": "107113",
+        },
+        {
+            "title": f"{test_prefix} Отель Москва Измайлово 009",
+            "city": "Москва",
+            "address": f"{test_prefix} Измайловский проспект, 100",
+            "postal_code": "105187",
+        },
+        {
+            "title": f"{test_prefix} Отель Москва ВДНХ 010",
+            "city": "Москва",
+            "address": f"{test_prefix} Проспект Мира, 18",
+            "postal_code": "129223",
+        },
+        {
+            "title": f"{test_prefix} Отель Москва Таганка 011",
+            "city": "Москва",
+            "address": f"{test_prefix} Таганская площадь, 45",
+            "postal_code": "109147",
+        },
+        {
+            "title": f"{test_prefix} Отель Москва Тверская 012",
+            "city": "Москва",
+            "address": f"{test_prefix} Тверская улица, 25",
+            "postal_code": "103009",
+        },
+        {
+            "title": f"{test_prefix} Отель Москва Парк 013",
+            "city": "Москва",
+            "address": f"{test_prefix} Парковая аллея, 33",
+            "postal_code": "105484",
+        },
     ]
-    
+
     hotel_ids = []
     for hotel in hotels:
         response = client.post("/hotels", json=hotel)
@@ -198,25 +247,18 @@ def created_hotel_ids(client, test_prefix):
             error_detail = response.json().get("detail", "Unknown error") if response.status_code != 200 else ""
             assert False, f"Не удалось создать отель {hotel['title']}: {response.status_code} - {error_detail}"
         assert response.json() == {"status": "OK"}
-    
-    response = client.get(
-        "/hotels",
-        params={
-            "title": test_prefix,
-            "per_page": 20,
-            "page": 1
-        }
-    )
+
+    response = client.get("/hotels", params={"title": test_prefix, "per_page": 20, "page": 1})
     assert response.status_code == 200
     hotels_data = response.json()
-    
+
     created_titles = {h["title"] for h in hotels}
     for hotel in hotels_data:
         if hotel["title"] in created_titles:
             hotel_ids.append(hotel["id"])
-    
+
     yield hotel_ids
-    
+
     for hotel_id in hotel_ids:
         client.delete(f"/hotels/{hotel_id}")
 
@@ -227,29 +269,44 @@ def created_room_ids(client, created_hotel_ids, test_prefix):
     if not created_hotel_ids:
         yield []
         return
-    
+
     hotel_id = created_hotel_ids[0]
     rooms = [
-        {"title": f"{test_prefix} Стандартный номер", "description": f"{test_prefix} Уютный номер с видом на город", "price": 3000, "quantity": 5},
-        {"title": f"{test_prefix} Люкс", "description": f"{test_prefix} Просторный номер с балконом", "price": 5000, "quantity": 3},
-        {"title": f"{test_prefix} Президентский люкс", "description": f"{test_prefix} Роскошный номер", "price": 10000, "quantity": 1},
+        {
+            "title": f"{test_prefix} Стандартный номер",
+            "description": f"{test_prefix} Уютный номер с видом на город",
+            "price": 3000,
+            "quantity": 5,
+        },
+        {
+            "title": f"{test_prefix} Люкс",
+            "description": f"{test_prefix} Просторный номер с балконом",
+            "price": 5000,
+            "quantity": 3,
+        },
+        {
+            "title": f"{test_prefix} Президентский люкс",
+            "description": f"{test_prefix} Роскошный номер",
+            "price": 10000,
+            "quantity": 1,
+        },
     ]
-    
+
     room_ids = []
     for room in rooms:
         response = client.post(f"/hotels/{hotel_id}/rooms", json=room)
         assert response.status_code == 200, f"Не удалось создать комнату {room['title']}"
         assert response.json() == {"status": "OK"}
-    
+
     response = client.get(f"/hotels/{hotel_id}/rooms")
     if response.status_code == 200:
         rooms_data = response.json()
         for room in rooms_data:
             if room["title"] in [r["title"] for r in rooms]:
                 room_ids.append(room["id"])
-    
+
     yield room_ids
-    
+
     for hotel_id in created_hotel_ids:
         response = client.get(f"/hotels/{hotel_id}/rooms", params={"per_page": 20, "page": 1})
         if response.status_code == 200:
@@ -264,7 +321,7 @@ def created_user_ids():
     """Список ID созданных пользователей для очистки"""
     user_ids = []
     yield user_ids
-    
+
     for user_id in user_ids:
         pass
 
@@ -274,7 +331,7 @@ def created_facility_ids():
     """Список ID созданных удобств для очистки"""
     facility_ids = []
     yield facility_ids
-    
+
     for facility_id in facility_ids:
         pass
 
@@ -284,7 +341,7 @@ def created_image_ids():
     """Список ID созданных изображений для очистки"""
     image_ids = []
     yield image_ids
-    
+
     for image_id in image_ids:
         pass
 
@@ -294,7 +351,7 @@ def created_booking_ids():
     """Список ID созданных бронирований для очистки"""
     booking_ids = []
     yield booking_ids
-    
+
     for booking_id in booking_ids:
         pass
 
@@ -302,7 +359,7 @@ def created_booking_ids():
 @pytest.fixture(scope="function")
 def created_booking_user_map():
     """Словарь: booking_id -> (user_id, user_email) для правильной очистки"""
-    booking_map: Dict[int, Tuple[int, str]] = {}
+    booking_map: dict[int, tuple[int, str]] = {}
     yield booking_map
 
 
@@ -314,23 +371,23 @@ def cleanup_after_test(
     created_facility_ids,
     created_image_ids,
     created_booking_ids,
-    created_booking_user_map
+    created_booking_user_map,
 ):
     """Автоматическая очистка после каждого теста"""
     yield
-    
+
     for image_id in created_image_ids[:]:
         try:
             client.delete(f"/images/{image_id}")
         except:
             pass
-    
+
     for facility_id in created_facility_ids[:]:
         try:
             client.delete(f"/facilities/{facility_id}")
         except:
             pass
-    
+
     bookings_by_user = {}
     for booking_id in created_booking_ids:
         if booking_id in created_booking_user_map:
@@ -338,36 +395,29 @@ def cleanup_after_test(
             if user_email not in bookings_by_user:
                 bookings_by_user[user_email] = []
             bookings_by_user[user_email].append(booking_id)
-    
+
     for user_email, booking_ids in bookings_by_user.items():
         if user_email:
             try:
-                login_response = client.post(
-                    "/auth/login",
-                    json={
-                        "email": user_email,
-                        "password": TEST_PASSWORD
-                    }
-                )
+                login_response = client.post("/auth/login", json={"email": user_email, "password": TEST_PASSWORD})
                 if login_response.status_code == 200:
                     access_token = login_response.cookies.get("access_token")
                     if access_token:
                         client.headers["Authorization"] = f"Bearer {access_token}"
-                    
+
                     for booking_id in booking_ids:
                         try:
                             client.delete(f"/bookings/{booking_id}")
                         except:
                             pass
-                    
+
                     if "Authorization" in client.headers:
                         del client.headers["Authorization"]
             except:
                 pass
-    
+
     for user_id in created_user_ids[:]:
         try:
             client.delete(f"/users/{user_id}")
         except:
             pass
-

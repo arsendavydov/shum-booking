@@ -1,19 +1,20 @@
-from typing import List, Dict, Any
+from typing import Any
+
 from src.models.rooms import RoomsOrm
-from src.schemas.rooms import SchemaRoom, SchemaRoomAvailable
-from src.schemas.facilities import SchemaFacility
 from src.repositories.mappers.base import DataMapper
+from src.schemas.facilities import SchemaFacility
+from src.schemas.rooms import SchemaRoom, SchemaRoomAvailable
 
 
-def facilities_to_schema(facilities_list) -> List[SchemaFacility]:
+def facilities_to_schema(facilities_list) -> list[SchemaFacility]:
     """
     Преобразовать список ORM объектов facilities в список SchemaFacility.
-    
+
     Использует from_attributes=True для автоматического преобразования.
-    
+
     Args:
         facilities_list: Список ORM объектов FacilitiesOrm или None
-        
+
     Returns:
         Список SchemaFacility
     """
@@ -26,22 +27,22 @@ class RoomsMapper(DataMapper[RoomsOrm, SchemaRoom]):
     """
     Маппер для преобразования RoomsOrm в SchemaRoom.
     """
-    
+
     @staticmethod
     def to_schema(orm_obj: RoomsOrm) -> SchemaRoom:
         """
         Преобразовать ORM объект комнаты в Pydantic схему.
-        
+
         Args:
             orm_obj: ORM объект комнаты
-            
+
         Returns:
             Pydantic схема SchemaRoom
         """
         facilities = []
-        if hasattr(orm_obj, 'facilities') and orm_obj.facilities:
+        if hasattr(orm_obj, "facilities") and orm_obj.facilities:
             facilities = facilities_to_schema(orm_obj.facilities)
-        
+
         return SchemaRoom(
             id=orm_obj.id,
             hotel_id=orm_obj.hotel_id,
@@ -49,25 +50,25 @@ class RoomsMapper(DataMapper[RoomsOrm, SchemaRoom]):
             description=orm_obj.description,
             price=orm_obj.price,
             quantity=orm_obj.quantity,
-            facilities=facilities
+            facilities=facilities,
         )
-    
+
     @staticmethod
     def to_schema_available(orm_obj: RoomsOrm, available_quantity: int) -> SchemaRoomAvailable:
         """
         Преобразовать ORM объект комнаты в Pydantic схему SchemaRoomAvailable.
-        
+
         Args:
             orm_obj: ORM объект комнаты
             available_quantity: Количество свободных номеров на период
-            
+
         Returns:
             Pydantic схема SchemaRoomAvailable
         """
         facilities = []
-        if hasattr(orm_obj, 'facilities') and orm_obj.facilities:
+        if hasattr(orm_obj, "facilities") and orm_obj.facilities:
             facilities = facilities_to_schema(orm_obj.facilities)
-        
+
         return SchemaRoomAvailable(
             id=orm_obj.id,
             hotel_id=orm_obj.hotel_id,
@@ -75,25 +76,24 @@ class RoomsMapper(DataMapper[RoomsOrm, SchemaRoom]):
             description=orm_obj.description,
             price=orm_obj.price,
             quantity=available_quantity,
-            facilities=facilities
+            facilities=facilities,
         )
-    
+
     @staticmethod
-    def from_schema(schema_obj: SchemaRoom, exclude: set[str] | None = None) -> Dict[str, Any]:
+    def from_schema(schema_obj: SchemaRoom, exclude: set[str] | None = None) -> dict[str, Any]:
         """
         Преобразовать Pydantic схему комнаты в словарь kwargs для создания ORM объекта.
-        
+
         Args:
             schema_obj: Pydantic схема SchemaRoom
             exclude: Множество полей, которые нужно исключить из результата
-            
+
         Returns:
             Словарь kwargs для создания ORM объекта
         """
         exclude = exclude or set()
-        exclude.add('id')
-        exclude.add('facilities')
-        
+        exclude.add("id")
+        exclude.add("facilities")
+
         data = schema_obj.model_dump(exclude=exclude)
         return data
-

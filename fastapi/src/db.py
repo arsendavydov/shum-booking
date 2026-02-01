@@ -1,5 +1,6 @@
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
 from src.config import settings
 from src.utils.logger import get_logger
 
@@ -9,6 +10,7 @@ logger = get_logger(__name__)
 _engine = None
 _async_session_maker_instance = None
 
+
 def _get_engine():
     """Получить engine, создавая его при первом вызове."""
     global _engine
@@ -17,13 +19,13 @@ def _get_engine():
         _engine = create_async_engine(DB_URL)
     return _engine
 
+
 def _get_async_session_maker():
     """Получить async_session_maker, создавая его при первом вызове."""
     global _async_session_maker_instance
     if _async_session_maker_instance is None:
         _async_session_maker_instance = async_sessionmaker(bind=_get_engine(), expire_on_commit=False)
     return _async_session_maker_instance
-
 
 
 async def check_connection():

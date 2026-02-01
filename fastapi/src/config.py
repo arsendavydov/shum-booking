@@ -1,5 +1,6 @@
-from pydantic_settings import BaseSettings, SettingsConfigDict  # type: ignore
 from pathlib import Path
+
+from pydantic_settings import BaseSettings, SettingsConfigDict  # type: ignore
 
 # Корень проекта FastAPI (fastapi/)
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -20,11 +21,11 @@ class Settings(BaseSettings):
     DB_NAME: str  # Название базы данных
     DB_USERNAME: str  # Имя пользователя базы данных
     DB_PASSWORD: str  # Пароль базы данных
-    
+
     # JWT настройки
     JWT_SECRET_KEY: str  # Секретный ключ для подписи JWT токенов
-    JWT_ALGORITHM: str # Алгоритм подписи JWT
-    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int # Время жизни access токена в минутах
+    JWT_ALGORITHM: str  # Алгоритм подписи JWT
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int  # Время жизни access токена в минутах
     JWT_COOKIE_SECURE: bool  # Использовать secure cookie (только HTTPS)
 
     # Redis настройки
@@ -32,7 +33,7 @@ class Settings(BaseSettings):
     REDIS_PORT: int  # Порт Redis
     REDIS_DB: int  # Номер базы данных Redis
     REDIS_PASSWORD: str | None = None  # Пароль Redis (опционально)
-    
+
     # Логирование
     LOG_LEVEL: str = "INFO"  # Уровень логирования: DEBUG, INFO, WARNING, ERROR, CRITICAL
 
@@ -40,7 +41,7 @@ class Settings(BaseSettings):
         env_file=env_file,  # None в Docker (переменные из os.environ), путь к файлу локально
         env_file_encoding="utf-8",
         extra="allow",
-        env_ignore_empty=True
+        env_ignore_empty=True,
     )
 
 

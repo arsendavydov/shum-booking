@@ -1,9 +1,11 @@
+from datetime import UTC, datetime, timedelta
+from typing import Any
+
 import bcrypt
-from datetime import datetime, timedelta, timezone
-from typing import Optional, Dict, Any
 import jwt
-from src.schemas.users import UserRequestRegister, UserRegister
+
 from src.config import settings
+from src.schemas.users import UserRegister, UserRequestRegister
 
 
 class AuthService:
@@ -11,125 +13,116 @@ class AuthService:
     Сервис для работы с аутентификацией и авторизацией.
     Инкапсулирует логику хеширования паролей, создания/проверки JWT токенов.
     """
-    
+
     def __init__(self):
         """Инициализация сервиса с настройками из config."""
         self.secret_key = settings.JWT_SECRET_KEY
         self.algorithm = settings.JWT_ALGORITHM
         self.expire_minutes = settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES
         self.cookie_secure = settings.JWT_COOKIE_SECURE
-    
+
     def hash_password(self, password: str) -> str:
         """
         Хешировать пароль с использованием bcrypt.
-        
+
         Bcrypt имеет ограничение на длину пароля - максимум 72 байта.
         Пароль автоматически обрезается до 72 байт перед хешированием.
-        
+
         Args:
             password: Пароль в открытом виде
-            
+
         Returns:
             Хешированный пароль в формате строки
         """
-        password_bytes = password.encode('utf-8')
+        password_bytes = password.encode("utf-8")
         if len(password_bytes) > 72:
             password_bytes = password_bytes[:72]
-        
+
         salt = bcrypt.gensalt()
         hashed = bcrypt.hashpw(password_bytes, salt)
-        return hashed.decode('utf-8')
-    
+        return hashed.decode("utf-8")
+
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:
         """
         Проверить соответствие пароля хешу.
-        
+
         Bcrypt имеет ограничение на длину пароля - максимум 72 байта.
         Пароль автоматически обрезается до 72 байт перед проверкой.
-        
+
         Args:
             plain_password: Пароль в открытом виде
             hashed_password: Хешированный пароль
-            
+
         Returns:
             True если пароль совпадает, False иначе
         """
-        password_bytes = plain_password.encode('utf-8')
+        password_bytes = plain_password.encode("utf-8")
         if len(password_bytes) > 72:
             password_bytes = password_bytes[:72]
-        
-        hashed_bytes = hashed_password.encode('utf-8')
+
+        hashed_bytes = hashed_password.encode("utf-8")
         return bcrypt.checkpw(password_bytes, hashed_bytes)
-    
+
     def prepare_user_data_for_registration(self, user_data: UserRequestRegister) -> UserRegister:
         """
         Подготовить данные пользователя для регистрации.
         Хеширует пароль и возвращает валидированную Pydantic схему с данными для создания пользователя.
-        
+
         Args:
             user_data: Данные регистрации пользователя (с паролем в открытом виде)
-            
+
         Returns:
             UserRegister: Валидированная схема с данными для создания пользователя (с захешированным паролем)
         """
         hashed_password = self.hash_password(user_data.password)
-        
+
         return UserRegister(
             email=user_data.email,
             hashed_password=hashed_password,
             first_name=user_data.first_name,
             last_name=user_data.last_name,
             telegram_id=user_data.telegram_id,
-            pachca_id=user_data.pachca_id
+            pachca_id=user_data.pachca_id,
         )
-    
-    def create_access_token(self, data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
+
+    def create_access_token(self, data: dict[str, Any], expires_delta: timedelta | None = None) -> str:
         """
         Создать JWT access токен.
-        
+
         Args:
             data: Данные для включения в токен (обычно user_id, email и т.д.)
             expires_delta: Время жизни токена. Если не указано, используется значение из настроек.
-            
+
         Returns:
             Закодированный JWT токен в виде строки
         """
         to_encode = data.copy()
-        
+
         if expires_delta:
-            expire = datetime.now(timezone.utc) + expires_delta
+            expire = datetime.now(UTC) + expires_delta
         else:
-            expire = datetime.now(timezone.utc) + timedelta(minutes=self.expire_minutes)
-        
-        to_encode.update({"exp": expire, "iat": datetime.now(timezone.utc)})
-        
-        encoded_jwt = jwt.encode(
-            to_encode,
-            self.secret_key,
-            algorithm=self.algorithm
-        )
-        
+            expire = datetime.now(UTC) + timedelta(minutes=self.expire_minutes)
+
+        to_encode.update({"exp": expire, "iat": datetime.now(UTC)})
+
+        encoded_jwt = jwt.encode(to_encode, self.secret_key, algorithm=self.algorithm)
+
         return encoded_jwt
-    
-    def decode_access_token(self, token: str) -> Optional[Dict[str, Any]]:
+
+    def decode_access_token(self, token: str) -> dict[str, Any] | None:
         """
         Декодировать и проверить JWT токен.
-        
+
         Args:
             token: JWT токен в виде строки
-            
+
         Returns:
             Словарь с данными из токена или None, если токен невалиден/истек
         """
         try:
-            payload = jwt.decode(
-                token,
-                self.secret_key,
-                algorithms=[self.algorithm]
-            )
+            payload = jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
             return payload
         except jwt.ExpiredSignatureError:
             return None
         except jwt.InvalidTokenError:
             return None
-

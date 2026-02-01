@@ -1,0 +1,93 @@
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+exclude = [
+    ".git",
+    "__pycache__",
+    ".venv",
+    "venv",
+    "env",
+    ".env",
+    "migrations",
+    "alembic.ini",
+    "build",
+    "dist",
+    "*.egg-info",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "ARG", # flake8-unused-arguments
+    "SIM", # flake8-simplify
+    "TCH", # flake8-type-checking
+    "PTH", # flake8-use-pathlib
+    "ERA", # eradicate
+    "PD",  # pandas-vet
+    "PGH", # pygrep-hooks
+    "PL",  # Pylint
+    "TRY", # tryceratops
+    "RUF", # Ruff-specific rules
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+    "B008",  # do not perform function calls in argument defaults
+    "PLR0913", # too many arguments
+    "PLR2004", # magic value used in comparison
+    "TRY003", # avoid specifying long messages outside the exception class
+    "PD002",  # pandas-vet (not using pandas)
+    "ERA001", # eradicate (commented code - sometimes useful)
+    "RUF001", # ambiguous unicode characters (кириллица в русском проекте - нормально)
+    "RUF002", # ambiguous unicode characters in docstrings (кириллица в русском проекте - нормально)
+    "RUF003", # ambiguous unicode characters in comments (кириллица в русском проекте - нормально)
+    "E722",   # bare except (используется в тестах для cleanup)
+    "B904",   # raise from None/err (в некоторых случаях не требуется)
+    "PTH107", # os.remove -> Path.unlink (можно оставить os.remove для совместимости)
+    "PTH110", # os.path.exists -> Path.exists (можно оставить os.path.exists для совместимости)
+    "PTH122", # os.path.splitext -> Path (можно оставить os.path.splitext для совместимости)
+    "PTH123", # open() -> Path.open() (можно оставить open() для совместимости)
+    "TRY301", # abstract raise (не всегда нужно)
+    "PLC0415", # import внутри функции (используется для избежания циклических импортов)
+    "PLW0603", # использование global (нормально для инициализации)
+    "SIM102", # nested if (иногда более читаемо)
+    "SIM108", # ternary operator (иногда if-else более читаемо)
+    "PGH003", # type: ignore без кода (можно использовать общий ignore)
+    "ARG002", # неиспользуемые аргументы в параметризованных тестах (нормально)
+    "PLR0912", # слишком много веток (можно игнорировать для тестов)
+    "PLR0915", # слишком много statements (можно игнорировать для тестов)
+    "B007", # неиспользуемая переменная цикла (нормально для cleanup)
+    "B011", # assert False (нормально для тестов)
+    "SIM105", # try-except-pass (нормально для cleanup)
+    "TRY300", # стиль исключений (можно игнорировать)
+    "TRY201", # стиль исключений (можно игнорировать)
+    "TRY002", # стиль исключений (можно игнорировать)
+    "RUF013", # implicit Optional (можно оставить для совместимости)
+    "RUF015", # предпочтение next(iter()) (можно игнорировать)
+    "E402", # импорт не наверху (используется для Celery)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+    "ARG001",  # unused function argument (fixtures)
+    "PLR2004", # magic value used in comparison
+    "S101",    # use of assert (pytest uses assert)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+

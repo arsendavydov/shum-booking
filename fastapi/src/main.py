@@ -1,28 +1,30 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+
 import uvicorn
+from fastapi import FastAPI
+
 from src.api import (
-    hotels_router,
     auth_router,
-    users_router,
-    rooms_router,
     bookings_router,
-    facilities_router,
-    images_router,
+    cities_router,
     countries_router,
-    cities_router
+    facilities_router,
+    hotels_router,
+    images_router,
+    rooms_router,
+    users_router,
 )
 from src.config import settings
-from src.utils.logger import setup_logging
-from src.utils.startup import startup_handler, shutdown_handler
 from src.middleware.http_logging import HTTPLoggingMiddleware
+from src.utils.logger import setup_logging
+from src.utils.startup import shutdown_handler, startup_handler
 
 log_file_name = "app_test.log" if settings.DB_NAME == "test" else "app.log"
 setup_logging(log_file_name=log_file_name)
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(_app: FastAPI):
     """Lifespan события для FastAPI - выполняется при старте и остановке приложения."""
     await startup_handler()
     yield
