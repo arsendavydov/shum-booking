@@ -1,6 +1,7 @@
 """
 Декораторы для сбора метрик.
 """
+
 import functools
 import time
 from collections.abc import Awaitable, Callable
@@ -70,16 +71,16 @@ def track_cache_operation(operation: str, namespace: str = "default"):
 
             start_time = time.time()
             cache_operations_total.labels(operation=operation, namespace=namespace).inc()
-            
+
             try:
                 result = await func(*args, **kwargs)
-                
+
                 if operation == "get":
                     if result is None:
                         cache_misses_total.labels(namespace=namespace).inc()
                     else:
                         cache_hits_total.labels(namespace=namespace).inc()
-                
+
                 return result
             finally:
                 duration = time.time() - start_time
@@ -88,4 +89,3 @@ def track_cache_operation(operation: str, namespace: str = "default"):
         return wrapper
 
     return decorator
-

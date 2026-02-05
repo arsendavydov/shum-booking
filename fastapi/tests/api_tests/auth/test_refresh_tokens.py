@@ -47,7 +47,6 @@ class TestRefreshTokens:
         assert login_response.status_code == 200
         login_data = login_response.json()
         refresh_token = login_data["refresh_token"]
-        old_access_token = login_data["access_token"]
 
         # Обновление токена
         refresh_response = client.post(
@@ -163,4 +162,3 @@ class TestRefreshTokens:
         )
         assert me_response.status_code == 200
         assert me_response.json()["email"] == email
-

@@ -1,12 +1,13 @@
 """
 Модуль для настройки и инициализации метрик Prometheus.
 """
+
 from datetime import UTC, datetime
 
+from fastapi import FastAPI
 from prometheus_client import REGISTRY, generate_latest
 from prometheus_fastapi_instrumentator import Instrumentator
 
-from src.config import settings
 from src.metrics.collectors import (
     app_info,
     app_uptime_seconds,
@@ -17,7 +18,7 @@ from src.metrics.helpers import should_collect_metrics
 _app_start_time = datetime.now(UTC)
 
 
-def setup_prometheus_instrumentator(app) -> None:
+def setup_prometheus_instrumentator(app: FastAPI) -> None:
     """
     Настроить prometheus-fastapi-instrumentator для автоматического сбора HTTP метрик.
 
@@ -41,7 +42,7 @@ def setup_prometheus_instrumentator(app) -> None:
 
 def update_system_metrics() -> None:
     """Обновить системные метрики (uptime).
-    
+
     Примечание: process_resident_memory_bytes и process_cpu_seconds_total
     обновляются автоматически prometheus-fastapi-instrumentator.
     """
@@ -65,4 +66,3 @@ def get_metrics() -> str:
     """
     update_system_metrics()
     return generate_latest(REGISTRY).decode("utf-8")
-

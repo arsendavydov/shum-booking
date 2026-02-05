@@ -7,7 +7,6 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import ASGIApp
 
-from src.config import settings
 from src.metrics.collectors import api_errors_total, api_request_duration_seconds, api_requests_total
 from src.metrics.helpers import should_collect_metrics
 from src.utils.logger import get_logger
@@ -39,7 +38,7 @@ class HTTPLoggingMiddleware(BaseHTTPMiddleware):
         response: Response | None = None
         endpoint = request.url.path
         error_type = None
-        
+
         try:
             response = await call_next(request)
             status_code = response.status_code
@@ -57,7 +56,7 @@ class HTTPLoggingMiddleware(BaseHTTPMiddleware):
             # чтобы гарантированно попасть и в app.log, и в stdout контейнера.
             logger.info(log_message)
             logging.getLogger().info(log_message)
-            
+
             # Собираем метрики
             if should_collect_metrics():
                 api_requests_total.labels(endpoint=endpoint, method=method, status=status_code).inc()

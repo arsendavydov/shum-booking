@@ -108,10 +108,7 @@ class TestRateLimiting:
 
         if RATE_LIMIT_ENABLED_IN_TESTS:
             # Rate limiting включен - должен быть хотя бы один 429
-            assert has_429, (
-                f"Rate limiting включен, но не получен код 429. "
-                f"Статус коды: {status_codes}"
-            )
+            assert has_429, f"Rate limiting включен, но не получен код 429. Статус коды: {status_codes}"
             rate_limited_response = next(r for r in responses if r.status_code == 429)
             assert "detail" in rate_limited_response.json()
             detail = rate_limited_response.json()["detail"]
@@ -188,4 +185,3 @@ class TestRateLimiting:
 
         test_client1.close()
         test_client2.close()
-

@@ -27,8 +27,8 @@ case "$ACTION" in
         echo "✅ Все проверки завершены!"
         ;;
     fix)
-        echo "🔧 Запуск ruff check --fix..."
-        docker exec "${CONTAINER_NAME}" ruff check --fix src/ tests/
+        echo "🔧 Запуск ruff check --fix --unsafe-fixes..."
+        docker exec "${CONTAINER_NAME}" ruff check --fix --unsafe-fixes src/ tests/
         
         echo "✨ Запуск ruff format..."
         docker exec "${CONTAINER_NAME}" ruff format src/ tests/

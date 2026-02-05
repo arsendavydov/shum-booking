@@ -70,11 +70,11 @@ def client():
 @pytest.fixture(scope="function")
 def db_session():
     """Асинхронная сессия базы данных для тестов.
-    
+
     Возвращает async context manager, который нужно использовать с async with.
     """
-    from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-    
+    from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
     db_host = os.getenv("DB_HOST", "localhost")
     db_port = int(os.getenv("DB_PORT", "5432"))
     db_username = os.getenv("DB_USERNAME", "postgres")
@@ -90,16 +90,16 @@ def db_session():
             self.session_factory = session_factory
             self.engine = engine
             self.session = None
-            
+
         async def __aenter__(self):
             self.session = self.session_factory()
             return self.session
-            
+
         async def __aexit__(self, exc_type, exc_val, exc_tb):
             if self.session:
                 await self.session.rollback()
             await self.engine.dispose()
-    
+
     return SessionContext(async_session)
 
 

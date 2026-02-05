@@ -11,7 +11,14 @@ from src.metrics.collectors import (
 from src.metrics.helpers import should_collect_metrics
 from src.middleware.rate_limiting import rate_limit
 from src.schemas.common import MessageResponse
-from src.schemas.users import RefreshTokenRequest, SchemaUser, TokenResponse, UserRequestLogin, UserRequestRegister, UserResponse
+from src.schemas.users import (
+    RefreshTokenRequest,
+    SchemaUser,
+    TokenResponse,
+    UserRequestLogin,
+    UserRequestRegister,
+    UserResponse,
+)
 from src.utils.db_manager import DBManager
 
 router = APIRouter()
@@ -26,7 +33,7 @@ router = APIRouter()
 )
 @rate_limit(f"{settings.RATE_LIMIT_AUTH_PER_MINUTE}/minute")
 async def register_user(
-    request: Request,
+    request: Request,  # noqa: ARG001
     auth_service: AuthServiceDep,
     users_service: UsersServiceDep,
     user_data: UserRequestRegister = Body(
@@ -100,7 +107,7 @@ async def register_user(
 )
 @rate_limit(f"{settings.RATE_LIMIT_AUTH_PER_MINUTE}/minute")
 async def login_user(
-    request: Request,
+    request: Request,  # noqa: ARG001
     response: Response,
     db: DBDep,
     auth_service: AuthServiceDep,
@@ -156,7 +163,7 @@ async def login_user(
     refresh_token_repo = DBManager.get_refresh_tokens_repository(db)
     refresh_token = auth_service.generate_refresh_token()
     expires_at = auth_service.get_refresh_token_expires_at()
-    
+
     async with DBManager.transaction(db):
         await refresh_token_repo.create_token(user_orm.id, refresh_token, expires_at)
 
@@ -215,7 +222,7 @@ async def get_current_user_info(current_user: CurrentUserDep) -> SchemaUser:
 )
 @rate_limit(f"{settings.RATE_LIMIT_AUTH_PER_MINUTE}/minute")
 async def refresh_token(
-    request: Request,
+    request: Request,  # noqa: ARG001
     response: Response,
     db: DBDep,
     auth_service: AuthServiceDep,
@@ -248,34 +255,34 @@ async def refresh_token(
         HTTPException: 401 если refresh токен невалиден или истек
     """
     refresh_token_repo = DBManager.get_refresh_tokens_repository(db)
-    
+
     # Проверяем refresh токен
     refresh_token_orm = await refresh_token_repo.get_by_token(refresh_data.refresh_token)
-    
+
     if refresh_token_orm is None:
         if should_collect_metrics():
             auth_refresh_tokens_total.labels(status="failure").inc()
         raise HTTPException(status_code=401, detail="Невалидный или истекший refresh токен")
-    
+
     # Получаем пользователя
     users_repo = DBManager.get_users_repository(db)
     user_orm = await users_repo.get_by_field_orm("id", refresh_token_orm.user_id)
-    
+
     if user_orm is None:
         raise HTTPException(status_code=401, detail="Пользователь не найден")
-    
+
     # Отзываем старый refresh токен
     async with DBManager.transaction(db):
         await refresh_token_repo.revoke_token(refresh_data.refresh_token)
-        
+
         # Создаем новый access токен
         access_token = auth_service.create_access_token(data={"sub": str(user_orm.id), "email": user_orm.email})
-        
+
         # Создаем новый refresh токен
         new_refresh_token = auth_service.generate_refresh_token()
         expires_at = auth_service.get_refresh_token_expires_at()
         await refresh_token_repo.create_token(user_orm.id, new_refresh_token, expires_at)
-    
+
     # Установка нового access токена в HTTP-only cookie
     expire_minutes = auth_service.expire_minutes
     response.set_cookie(
@@ -287,11 +294,11 @@ async def refresh_token(
         samesite="lax",
         path="/",
     )
-    
+
     # Метрика успешного обновления токена
     if should_collect_metrics():
         auth_refresh_tokens_total.labels(status="success").inc()
-    
+
     return TokenResponse(access_token=access_token, refresh_token=new_refresh_token, token_type="bearer")
 
 
@@ -327,7 +334,7 @@ async def logout_user(
     refresh_token_repo = DBManager.get_refresh_tokens_repository(db)
     async with DBManager.transaction(db):
         await refresh_token_repo.revoke_all_user_tokens(current_user.id)
-    
+
     # Удаляем токен из cookie
     response.delete_cookie(
         key="access_token",

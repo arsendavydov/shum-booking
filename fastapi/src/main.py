@@ -19,6 +19,7 @@ from src.api import (
 )
 from src.config import settings
 from src.exceptions.base import DomainException
+from src.metrics.setup import setup_prometheus_instrumentator
 from src.middleware.exception_handler import (
     database_exception_handler,
     domain_exception_handler,
@@ -26,7 +27,6 @@ from src.middleware.exception_handler import (
 )
 from src.middleware.http_logging import HTTPLoggingMiddleware
 from src.middleware.rate_limiting import setup_rate_limiting
-from src.metrics.setup import setup_prometheus_instrumentator
 from src.utils.logger import get_logger, setup_logging
 from src.utils.startup import shutdown_handler, startup_handler
 
@@ -78,7 +78,9 @@ else:
         setup_rate_limiting(app)
         logger.info("Rate Limiting настроен для тестов (RATE_LIMIT_ENABLED_IN_TESTS=true)")
     else:
-        logger.info("Rate Limiting НЕ настроен (тестовый режим, используйте RATE_LIMIT_ENABLED_IN_TESTS=true для включения)")
+        logger.info(
+            "Rate Limiting НЕ настроен (тестовый режим, используйте RATE_LIMIT_ENABLED_IN_TESTS=true для включения)"
+        )
 
 app.add_exception_handler(DatabaseError, database_exception_handler)
 app.add_exception_handler(DomainException, domain_exception_handler)

@@ -3,7 +3,8 @@
 
 Содержит счетчики, гистограммы и другие метрики для мониторинга приложения.
 """
-from prometheus_client import Counter, Histogram, Gauge
+
+from prometheus_client import Counter, Gauge, Histogram
 
 # ============================================================================
 # Метрики аутентификации
@@ -166,27 +167,26 @@ users_active_total = Gauge(
 
 # Экспорт всех метрик для удобного импорта
 __all__ = [
-    "auth_registrations_total",
+    "api_errors_total",
+    "api_request_duration_seconds",
+    "api_requests_total",
+    "app_info",
+    "app_uptime_seconds",
+    "auth_failed_attempts_total",
     "auth_logins_total",
     "auth_refresh_tokens_total",
-    "auth_failed_attempts_total",
-    "db_queries_total",
-    "db_query_duration_seconds",
-    "db_connections_active",
-    "db_connections_idle",
-    "cache_operations_total",
+    "auth_registrations_total",
+    "bookings_created_total",
     "cache_hits_total",
     "cache_misses_total",
     "cache_operation_duration_seconds",
-    "rate_limit_requests_total",
-    "rate_limit_exceeded_total",
-    "api_requests_total",
-    "api_request_duration_seconds",
-    "api_errors_total",
-    "app_uptime_seconds",
-    "app_info",
-    "bookings_created_total",
+    "cache_operations_total",
+    "db_connections_active",
+    "db_connections_idle",
+    "db_queries_total",
+    "db_query_duration_seconds",
     "hotels_created_total",
+    "rate_limit_exceeded_total",
+    "rate_limit_requests_total",
     "users_active_total",
 ]
-

@@ -71,7 +71,7 @@ class RefreshTokensRepository(BaseRepository[RefreshTokenOrm]):
         stmt = select(RefreshTokenOrm).where(
             and_(
                 RefreshTokenOrm.token == token,
-                RefreshTokenOrm.is_revoked == False,
+                ~RefreshTokenOrm.is_revoked,
                 RefreshTokenOrm.expires_at > datetime.now(UTC),
             )
         )
@@ -100,7 +100,7 @@ class RefreshTokensRepository(BaseRepository[RefreshTokenOrm]):
         stmt = select(RefreshTokenOrm).where(
             and_(
                 RefreshTokenOrm.user_id == user_id,
-                RefreshTokenOrm.is_revoked == False,
+                ~RefreshTokenOrm.is_revoked,
             )
         )
         result = await self.session.execute(stmt)
@@ -124,4 +124,3 @@ class RefreshTokensRepository(BaseRepository[RefreshTokenOrm]):
             await self.session.delete(token)
         await self.session.flush()
         return count
-

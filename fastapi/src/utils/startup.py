@@ -41,7 +41,7 @@ async def startup_handler() -> None:
     except Exception as e:
         logger.error(f"Ошибка подключения к Redis: {e}", exc_info=True)
         raise
-    
+
     # Инициализируем системные метрики при старте приложения
     if should_collect_metrics():
         update_system_metrics()

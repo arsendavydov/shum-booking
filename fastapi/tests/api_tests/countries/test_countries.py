@@ -81,21 +81,23 @@ class TestCountries:
 
     def test_create_country_duplicate_name(self, client, test_prefix):
         """Создание страны с дублирующимся названием"""
-        timestamp = int(time.time())
+        timestamp = int(time.time() * 1000)
         unique_name = f"{test_prefix} Дубликат {timestamp}"
-        # ISO код должен быть ровно 2 буквы, используем уникальный код на основе timestamp
-        # Используем буквы A-Z (26 букв), берем остаток от деления на 26
-        letter1 = chr(ord("A") + (timestamp % 26))
-        letter2 = chr(ord("A") + ((timestamp // 26) % 26))
-        unique_iso1 = f"{letter1}{letter2}"
-        # Для второго ISO кода используем другую комбинацию
-        letter3 = chr(ord("A") + ((timestamp + 1) % 26))
-        letter4 = chr(ord("A") + (((timestamp + 1) // 26) % 26))
-        unique_iso2 = f"{letter3}{letter4}"
+        # Используем функцию для генерации уникального ISO кода
+        unique_iso1 = _generate_unique_iso_code(timestamp)
         country_data = {"name": unique_name, "iso_code": unique_iso1}
         create_response = client.post("/countries", json=country_data)
+        # Если получили 409 (конфликт), пробуем с другим ISO кодом
+        offset = 1
+        while create_response.status_code == 409 and offset < 10:
+            unique_iso1 = _generate_unique_iso_code(timestamp, offset)
+            country_data = {"name": unique_name, "iso_code": unique_iso1}
+            create_response = client.post("/countries", json=country_data)
+            offset += 1
         assert create_response.status_code == 200
 
+        # Для второго ISO кода используем другой offset, чтобы гарантировать уникальность
+        unique_iso2 = _generate_unique_iso_code(timestamp, offset + 10)
         duplicate_response = client.post("/countries", json={"name": unique_name, "iso_code": unique_iso2})
         assert duplicate_response.status_code == 409
         assert "уже существует" in duplicate_response.json()["detail"]
@@ -107,18 +109,22 @@ class TestCountries:
 
     def test_create_country_duplicate_iso_code(self, client, test_prefix):
         """Создание страны с дублирующимся ISO кодом"""
-        timestamp = int(time.time())
+        timestamp = int(time.time() * 1000)
         unique_name1 = f"{test_prefix} Страна 1 {timestamp}"
         unique_name2 = f"{test_prefix} Страна 2 {timestamp}"
-        # ISO код должен быть ровно 2 буквы, используем уникальный код на основе timestamp
-        # Используем буквы A-Z (26 букв), берем остаток от деления на 26
-        letter1 = chr(ord("A") + (timestamp % 26))
-        letter2 = chr(ord("A") + ((timestamp // 26) % 26))
-        unique_iso = f"{letter1}{letter2}"
+        # Используем функцию для генерации уникального ISO кода
+        unique_iso = _generate_unique_iso_code(timestamp)
 
         create_response = client.post("/countries", json={"name": unique_name1, "iso_code": unique_iso})
+        # Если получили 409 (конфликт), пробуем с другим ISO кодом
+        offset = 1
+        while create_response.status_code == 409 and offset < 10:
+            unique_iso = _generate_unique_iso_code(timestamp, offset)
+            create_response = client.post("/countries", json={"name": unique_name1, "iso_code": unique_iso})
+            offset += 1
         assert create_response.status_code == 200
 
+        # Пытаемся создать страну с тем же ISO кодом, но другим именем
         duplicate_response = client.post("/countries", json={"name": unique_name2, "iso_code": unique_iso})
         assert duplicate_response.status_code == 409
         assert (

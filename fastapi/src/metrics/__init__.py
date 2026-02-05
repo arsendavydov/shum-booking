@@ -15,8 +15,8 @@ from src.metrics.collectors import (
     cache_operations_total,
     db_connections_active,
     db_connections_idle,
-    db_query_duration_seconds,
     db_queries_total,
+    db_query_duration_seconds,
     hotels_created_total,
     rate_limit_exceeded_total,
     rate_limit_requests_total,
@@ -40,11 +40,10 @@ __all__ = [
     "cache_operations_total",
     "db_connections_active",
     "db_connections_idle",
-    "db_query_duration_seconds",
     "db_queries_total",
+    "db_query_duration_seconds",
     "hotels_created_total",
     "rate_limit_exceeded_total",
     "rate_limit_requests_total",
     "users_active_total",
 ]
-

@@ -41,8 +41,10 @@ class Settings(BaseSettings):
     # Rate Limiting настройки
     RATE_LIMIT_ENABLED: bool = True  # Включить rate limiting
     RATE_LIMIT_PER_MINUTE: int = 60  # Количество запросов в минуту для обычных эндпоинтов
-    RATE_LIMIT_AUTH_PER_MINUTE: int = 5  # Количество запросов в минуту для эндпоинтов аутентификации (защита от brute-force)
-    
+    RATE_LIMIT_AUTH_PER_MINUTE: int = (
+        5  # Количество запросов в минуту для эндпоинтов аутентификации (защита от brute-force)
+    )
+
     # Метрики в тестах
     ENABLE_METRICS_IN_TESTS: bool = False  # Включить метрики в тестовом режиме (для тестов метрик)
 
