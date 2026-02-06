@@ -65,7 +65,12 @@ cd "$PROJECT_ROOT/fastapi"
 # Запускаем тесты с записью результатов в файл через tee
 LOG_FILE="$PROJECT_ROOT/fastapi/logs/app_test.log"
 
-# Сначала запускаем обычные тесты на хосте (они подключаются к API через localhost:8001)
+# Сначала запускаем unit тесты внутри контейнера (они не требуют БД или API)
+echo "🧪 Запуск unit тестов..."
+docker exec fastapi_app_test python -m pytest tests/unit_tests/ -v --color=yes --tb=short 2>&1 | tee -a "$LOG_FILE"
+UNIT_TEST_EXIT_CODE=${PIPESTATUS[0]}
+
+# Затем запускаем обычные тесты на хосте (они подключаются к API через localhost:8001)
 echo "🧪 Запуск API тестов..."
 python3.11 -m pytest tests/api_tests/ -v --color=yes --tb=short 2>&1 | tee -a "$LOG_FILE"
 API_TEST_EXIT_CODE=${PIPESTATUS[0]}
@@ -76,7 +81,7 @@ docker exec fastapi_app_test python -m pytest tests/database_tests/ -v --color=y
 INDEX_TEST_EXIT_CODE=${PIPESTATUS[0]}
 
 # Если хотя бы один набор тестов упал, возвращаем ошибку
-if [ $API_TEST_EXIT_CODE -ne 0 ] || [ $INDEX_TEST_EXIT_CODE -ne 0 ]; then
+if [ $UNIT_TEST_EXIT_CODE -ne 0 ] || [ $API_TEST_EXIT_CODE -ne 0 ] || [ $INDEX_TEST_EXIT_CODE -ne 0 ]; then
     TEST_EXIT_CODE=1
 else
     TEST_EXIT_CODE=0
