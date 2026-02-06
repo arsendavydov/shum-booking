@@ -1,4 +1,6 @@
+import shutil
 from datetime import datetime
+from pathlib import Path
 
 from fastapi import APIRouter, Response
 from sqlalchemy import text
@@ -11,11 +13,83 @@ logger = get_logger(__name__)
 
 router = APIRouter()
 
+# Минимальный процент свободного места на диске (по умолчанию 10%)
+MIN_DISK_FREE_PERCENT = 10
+
+
+def check_disk_space(path: Path = Path("/")) -> dict:
+    """
+    Проверить свободное место на диске.
+
+    Args:
+        path: Путь для проверки дискового пространства (по умолчанию корень файловой системы)
+
+    Returns:
+        Словарь со статусом дискового пространства
+    """
+    try:
+        total, used, free = shutil.disk_usage(path)
+        free_percent = (free / total) * 100
+
+        return {
+            "status": "ok" if free_percent >= MIN_DISK_FREE_PERCENT else "warning",
+            "total_gb": round(total / (1024**3), 2),
+            "used_gb": round(used / (1024**3), 2),
+            "free_gb": round(free / (1024**3), 2),
+            "free_percent": round(free_percent, 2),
+            "min_free_percent": MIN_DISK_FREE_PERCENT,
+        }
+    except Exception as e:
+        logger.error(f"Ошибка проверки дискового пространства: {e}", exc_info=True)
+        return {
+            "status": "error",
+            "error": str(e),
+        }
+
+
+def check_celery_workers() -> dict:
+    """
+    Проверить доступность Celery workers.
+
+    Returns:
+        Словарь со статусом Celery workers
+    """
+    try:
+        from src.tasks.celery_app import celery_app
+
+        inspector = celery_app.control.inspect()
+        if inspector is None:
+            return {
+                "status": "no_workers",
+                "message": "Celery broker доступен, но активные workers не найдены",
+            }
+
+        # Проверяем доступность workers через ping
+        ping_result = inspector.ping()
+        if ping_result:
+            active_workers = list(ping_result.keys())
+            return {
+                "status": "ok",
+                "workers_count": len(active_workers),
+                "workers": active_workers,
+            }
+        else:
+            return {
+                "status": "no_workers",
+                "message": "Celery broker доступен, но workers не отвечают",
+            }
+    except Exception as e:
+        logger.error(f"Ошибка проверки Celery workers: {e}", exc_info=True)
+        return {
+            "status": "error",
+            "error": str(e),
+        }
+
 
 @router.get(
     "/health",
     summary="Health check",
-    description="Проверка состояния приложения, подключения к БД и Redis",
+    description="Проверка состояния приложения, подключения к БД, Redis, Celery и дискового пространства",
     tags=["Система"],
 )
 async def health_check(db: DBDep) -> dict:
@@ -23,7 +97,7 @@ async def health_check(db: DBDep) -> dict:
     Проверка состояния приложения.
 
     Returns:
-        Словарь со статусом приложения, БД и Redis
+        Словарь со статусом приложения, БД, Redis, Celery и дискового пространства
     """
     status = {
         "status": "ok",
@@ -31,8 +105,11 @@ async def health_check(db: DBDep) -> dict:
         "version": "1.0.0",
         "database": "unknown",
         "redis": "unknown",
+        "celery": "unknown",
+        "disk": "unknown",
     }
 
+    # Проверка БД
     try:
         result = await db.execute(text("SELECT 1"))
         result.scalar()
@@ -42,6 +119,7 @@ async def health_check(db: DBDep) -> dict:
         status["database"] = "disconnected"
         status["status"] = "degraded"
 
+    # Проверка Redis
     try:
         from src import redis_manager
 
@@ -56,6 +134,27 @@ async def health_check(db: DBDep) -> dict:
         status["redis"] = "disconnected"
         status["status"] = "degraded"
 
+    # Проверка Celery workers
+    celery_status = check_celery_workers()
+    status["celery"] = celery_status
+    if celery_status.get("status") == "error":
+        status["status"] = "degraded"
+    elif celery_status.get("status") == "no_workers":
+        # Отсутствие workers - это warning, но не критично для работы API
+        if status["status"] == "ok":
+            status["status"] = "degraded"
+
+    # Проверка дискового пространства
+    disk_status = check_disk_space()
+    status["disk"] = disk_status
+    if disk_status.get("status") == "error":
+        status["status"] = "degraded"
+    elif disk_status.get("status") == "warning":
+        # Мало места на диске - это warning, но не критично
+        if status["status"] == "ok":
+            status["status"] = "degraded"
+
+    # Если БД недоступна, приложение полностью не работает
     if status["database"] == "disconnected":
         status["status"] = "down"
 
