@@ -73,6 +73,28 @@ class TestImages:
         assert upload_response.status_code == 400
         assert "изображением" in upload_response.json()["detail"]
 
+    def test_upload_image_too_large_file(self, client, created_hotel_ids):
+        """загрузка слишком большого файла (по размеру)"""
+        import os
+
+        if not created_hotel_ids:
+            return
+
+        hotel_id = created_hotel_ids[-1]
+
+        # Получаем максимальный размер из переменной окружения (из .test.env)
+        max_size_mb = int(os.getenv("MAX_IMAGE_FILE_SIZE_MB", "10"))
+        # Создаем "большой" файл чуть больше лимита
+        big_content = b"a" * (max_size_mb * 1024 * 1024 + 1)
+
+        files = {"file": ("big_image.jpg", big_content, "image/jpeg")}
+        upload_response = client.post(f"/images/upload/{hotel_id}", files=files)
+
+        assert upload_response.status_code == 413
+        detail = upload_response.json()["detail"]
+        assert "лимит" in detail or "МБ" in detail
+        assert str(max_size_mb) in detail
+
     def test_get_hotel_images(self, client, created_hotel_ids, created_image_ids):
         """Получение изображений отеля"""
         if not created_hotel_ids:

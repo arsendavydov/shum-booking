@@ -83,8 +83,19 @@ async def upload_image(
 
         return temp_file_path, width, height
 
-    # Читаем файл и выполняем проверку размера в отдельном потоке
+    # Читаем файл
     content = await file.read()
+
+    # Ограничиваем максимальный размер файла (в байтах)
+    max_size_mb = settings.MAX_IMAGE_FILE_SIZE_MB
+    max_size_bytes = max_size_mb * 1024 * 1024
+    if len(content) > max_size_bytes:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Размер файла превышает допустимый лимит {max_size_mb} МБ",
+        )
+
+    # Выполняем проверку размеров изображения в отдельном потоке
     temp_file_path, width, _height = await asyncio.to_thread(
         save_and_check_image, content, os.path.splitext(file.filename)[1] if file.filename else ".jpg"
     )
