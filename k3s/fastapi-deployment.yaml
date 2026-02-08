@@ -142,11 +142,11 @@ spec:
           mountPath: /app/src/static/temp
         resources:
           requests:
-            memory: "128Mi"
-            cpu: "100m"
+            memory: "40Mi"
+            cpu: "30m"
           limits:
-            memory: "256Mi"
-            cpu: "200m"
+            memory: "80Mi"
+            cpu: "50m"
         livenessProbe:
           httpGet:
             path: /live

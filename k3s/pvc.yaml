@@ -5,10 +5,9 @@ metadata:
   namespace: booking
 spec:
   accessModes:
-    - ReadWriteMany  # Для возможности монтирования в несколько подов
+    - ReadWriteOnce  # local-path в K3s поддерживает только ReadWriteOnce
+  storageClassName: standard  # Используется local-path в K3s
   resources:
     requests:
-      storage: 10Gi  # Размер хранилища для изображений
-  # storageClassName: nfs-client  # Раскомментируйте, если используете NFS
-  # Если используете стандартный StorageClass, удалите эту строку
+      storage: 5Gi  # Уменьшено для low-resource сервера
 

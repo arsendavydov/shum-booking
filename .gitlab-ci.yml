@@ -191,6 +191,21 @@ deploy:production:
     # Проверка подключения к кластеру
     - kubectl cluster-info
     - kubectl get nodes
+    # Проверка доступных ресурсов на сервере
+    - |
+      echo "🔍 Проверка ресурсов сервера..."
+      echo ""
+      echo "📊 Информация о ноде:"
+      kubectl describe node | grep -E "(Name:|Capacity:|Allocatable:|Allocated resources:)" | head -20 || true
+      echo ""
+      echo "📋 Детальная информация о ресурсах:"
+      kubectl get node -o custom-columns=NAME:.metadata.name,CPU-CAP:.status.capacity.cpu,MEM-CAP:.status.capacity.memory,CPU-ALLOC:.status.allocatable.cpu,MEM-ALLOC:.status.allocatable.memory || true
+      echo ""
+      echo "📊 Текущее использование ресурсов:"
+      kubectl top node 2>/dev/null || echo "⚠️  metrics-server не установлен"
+      echo ""
+      echo "📋 Ресурсы текущих подов:"
+      kubectl get pods -A -o custom-columns=NAMESPACE:.metadata.namespace,NAME:.metadata.name,CPU-REQ:.spec.containers[*].resources.requests.cpu,MEM-REQ:.spec.containers[*].resources.requests.memory,CPU-LIM:.spec.containers[*].resources.limits.cpu,MEM-LIM:.spec.containers[*].resources.limits.memory 2>/dev/null | head -20 || true
   script:
     # Обновляем образы в deployment манифестах
     - |
@@ -213,9 +228,18 @@ deploy:production:
       else
         echo "✅ Secret booking-secrets найден"
       fi
-    # Проверяем статус PVC перед применением StatefulSet
+    # Проверяем и исправляем проблемные PVC
     - echo "📦 Проверка PVC:"
     - kubectl get pvc -n $KUBE_NAMESPACE || true
+    - |
+      # Удаляем PVC в статусе Pending, чтобы он мог быть пересоздан
+      PENDING_PVC=$(kubectl get pvc -n $KUBE_NAMESPACE -o jsonpath='{.items[?(@.status.phase=="Pending")].metadata.name}' 2>/dev/null || echo "")
+      if [ -n "$PENDING_PVC" ]; then
+        echo "⚠️  Найден PVC в статусе Pending: $PENDING_PVC"
+        echo "   Удаляем для пересоздания с правильными настройками..."
+        kubectl delete pvc $PENDING_PVC -n $KUBE_NAMESPACE --ignore-not-found=true || true
+        sleep 2
+      fi
     # База данных и кэш (должны быть первыми)
     - kubectl apply -f k3s/postgres-statefulset.yaml
     - kubectl apply -f k3s/redis-deployment.yaml
