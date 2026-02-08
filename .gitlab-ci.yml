@@ -157,14 +157,15 @@ deploy:production:
   image: alpine/k8s:1.28.0
   before_script:
     - kubectl version --client
-    # Настройка kubectl (используем переменную KUBECONFIG из GitLab CI/CD Variables)
+    # Настройка kubectl (используем переменную KUBECONFIG_BASE64 из GitLab CI/CD Variables)
     - |
-      if [ -n "$KUBECONFIG" ]; then
+      if [ -n "$KUBECONFIG_BASE64" ]; then
         mkdir -p ~/.kube
-        echo "$KUBECONFIG" | base64 -d > ~/.kube/config
+        echo "$KUBECONFIG_BASE64" | base64 -d > ~/.kube/config
         chmod 600 ~/.kube/config
+        export KUBECONFIG=~/.kube/config
       else
-        echo "❌ KUBECONFIG не настроен в GitLab CI/CD Variables!"
+        echo "❌ KUBECONFIG_BASE64 не настроен в GitLab CI/CD Variables!"
         exit 1
       fi
     # Проверка подключения к кластеру
@@ -220,12 +221,13 @@ rollback:production:
   image: alpine/k8s:1.28.0
   before_script:
     - |
-      if [ -n "$KUBECONFIG" ]; then
+      if [ -n "$KUBECONFIG_BASE64" ]; then
         mkdir -p ~/.kube
-        echo "$KUBECONFIG" | base64 -d > ~/.kube/config
+        echo "$KUBECONFIG_BASE64" | base64 -d > ~/.kube/config
         chmod 600 ~/.kube/config
+        export KUBECONFIG=~/.kube/config
       else
-        echo "❌ KUBECONFIG не настроен!"
+        echo "❌ KUBECONFIG_BASE64 не настроен!"
         exit 1
       fi
   script:
