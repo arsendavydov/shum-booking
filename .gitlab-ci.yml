@@ -186,13 +186,21 @@ deploy:production:
     - kubectl apply -f k8s/configmap.yaml
     - kubectl apply -f k8s/nginx-configmap.yaml
     - kubectl apply -f k8s/pvc.yaml
+    # База данных и кэш (должны быть первыми)
+    - kubectl apply -f k8s/postgres-statefulset.yaml
+    - kubectl apply -f k8s/redis-deployment.yaml
+    # Приложение
     - kubectl apply -f k8s/fastapi-deployment.yaml
     - kubectl apply -f k8s/fastapi-service.yaml
     - kubectl apply -f k8s/celery-deployment.yaml
+    # Nginx
     - kubectl apply -f k8s/nginx-deployment.yaml
     - kubectl apply -f k8s/nginx-service.yaml
+    # Ingress (последним)
     - kubectl apply -f k8s/ingress.yaml
     # Ждем готовности подов
+    - kubectl rollout status statefulset/postgres -n $KUBE_NAMESPACE --timeout=5m
+    - kubectl rollout status deployment/redis -n $KUBE_NAMESPACE --timeout=5m
     - kubectl rollout status deployment/fastapi-app -n $KUBE_NAMESPACE --timeout=5m
     - kubectl rollout status deployment/celery-worker -n $KUBE_NAMESPACE --timeout=5m
     - kubectl rollout status deployment/nginx -n $KUBE_NAMESPACE --timeout=5m

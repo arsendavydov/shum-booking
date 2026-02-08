@@ -1,0 +1,123 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: booking
+  labels:
+    app: redis
+    component: cache
+spec:
+  replicas: 1  # Redis обычно один экземпляр (можно настроить репликацию отдельно)
+  selector:
+    matchLabels:
+      app: redis
+      component: cache
+  template:
+    metadata:
+      labels:
+        app: redis
+        component: cache
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        ports:
+        - containerPort: 6379
+          name: redis
+          protocol: TCP
+        command:
+        - /bin/sh
+        - -c
+        - |
+          if [ -n "$REDIS_PASSWORD" ]; then
+            redis-server --appendonly yes --requirepass "$REDIS_PASSWORD"
+          else
+            redis-server --appendonly yes
+          fi
+        env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: booking-secrets
+              key: REDIS_PASSWORD
+              optional: true
+        volumeMounts:
+        - name: redis-data
+          mountPath: /data
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - |
+              if [ -n "$REDIS_PASSWORD" ]; then
+                redis-cli -a "$REDIS_PASSWORD" ping
+              else
+                redis-cli ping
+              fi
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - |
+              if [ -n "$REDIS_PASSWORD" ]; then
+                redis-cli -a "$REDIS_PASSWORD" ping
+              else
+                redis-cli ping
+              fi
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+      volumes:
+      - name: redis-data
+        persistentVolumeClaim:
+          claimName: redis-data-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-data-pvc
+  namespace: booking
+  labels:
+    app: redis
+    component: cache
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: standard  # ЗАМЕНИТЕ на ваш StorageClass
+  resources:
+    requests:
+      storage: 5Gi  # Размер диска для Redis
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-service
+  namespace: booking
+  labels:
+    app: redis
+    component: cache
+spec:
+  type: ClusterIP
+  ports:
+  - port: 6379
+    targetPort: 6379
+    protocol: TCP
+    name: redis
+  selector:
+    app: redis
+    component: cache
+
