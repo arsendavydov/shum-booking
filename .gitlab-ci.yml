@@ -154,7 +154,7 @@ test:
 # ============================================================================
 deploy:production:
   stage: deploy
-  image: bitnami/kubectl:latest
+  image: alpine/k8s:1.28.0
   before_script:
     - kubectl version --client
     # Настройка kubectl (используем переменную KUBECONFIG из GitLab CI/CD Variables)
@@ -217,7 +217,7 @@ deploy:production:
 # ============================================================================
 rollback:production:
   stage: deploy
-  image: bitnami/kubectl:latest
+  image: alpine/k8s:1.28.0
   before_script:
     - |
       if [ -n "$KUBECONFIG" ]; then
