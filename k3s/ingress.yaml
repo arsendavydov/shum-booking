@@ -26,11 +26,9 @@ spec:
     - async-black.ru
     secretName: booking-tls
   rules:
-  # Временный доступ по IP (пока DNS не настроен)
-  # Убираем host, чтобы Ingress работал для всех хостов, включая IP
-  # После настройки DNS добавим:
-  # - host: async-black.ru
-  - http:
+  # DNS настроен: async-black.ru -> 188.120.244.162
+  - host: async-black.ru
+    http:
       paths:
       - path: /apps/shum-booking(/|$)(.*)
         pathType: ImplementationSpecific
