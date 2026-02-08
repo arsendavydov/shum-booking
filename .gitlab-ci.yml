@@ -178,9 +178,9 @@ deploy:production:
   script:
     # Обновляем образы в deployment манифестах
     - |
-      sed -i "s|registry.gitlab.com/YOUR_GROUP/YOUR_PROJECT:latest|$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA|g" k8s/fastapi-deployment.yaml
-      sed -i "s|registry.gitlab.com/YOUR_GROUP/YOUR_PROJECT:latest|$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA|g" k8s/celery-deployment.yaml
-      sed -i "s|\${CI_REGISTRY_IMAGE}/nginx:latest|$CI_REGISTRY_IMAGE/nginx:$CI_COMMIT_SHA|g" k8s/nginx-deployment.yaml
+      sed -i "s|registry.gitlab.com/arsen-davydov-main/shum_booking_v2:latest|$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA|g" k8s/fastapi-deployment.yaml
+      sed -i "s|registry.gitlab.com/arsen-davydov-main/shum_booking_v2:latest|$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA|g" k8s/celery-deployment.yaml
+      sed -i "s|registry.gitlab.com/arsen-davydov-main/shum_booking_v2/nginx:latest|$CI_REGISTRY_IMAGE/nginx:$CI_COMMIT_SHA|g" k8s/nginx-deployment.yaml
     # Применяем манифесты в правильном порядке
     - kubectl apply -f k8s/namespace.yaml
     - kubectl apply -f k8s/configmap.yaml
@@ -202,7 +202,7 @@ deploy:production:
     - echo "✅ Деплой завершен успешно!"
   environment:
     name: production
-    url: https://api.yourdomain.com  # ЗАМЕНИТЕ на ваш домен
+    url: ${PRODUCTION_DOMAIN:-https://api.yourdomain.com}  # Настройте PRODUCTION_DOMAIN в CI/CD Variables
   only:
     - main
     - master

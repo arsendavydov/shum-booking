@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
       - name: celery
-        image: registry.gitlab.com/YOUR_GROUP/YOUR_PROJECT:latest  # ЗАМЕНИТЕ на ваш registry
+        image: registry.gitlab.com/arsen-davydov-main/shum_booking_v2:latest  # Обновляется автоматически в CI/CD
         imagePullPolicy: Always
         command:
         - celery
