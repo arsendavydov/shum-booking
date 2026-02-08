@@ -13,7 +13,7 @@ metadata:
     nginx.ingress.kubernetes.io/rewrite-target: /$2
     nginx.ingress.kubernetes.io/use-regex: "true"
     # Для Let's Encrypt (cert-manager)
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"  # Настроить после установки cert-manager
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"  # Включить после установки cert-manager
     # Размер тела запроса (для загрузки изображений)
     nginx.ingress.kubernetes.io/proxy-body-size: "10m"
     # Таймауты
