@@ -26,3 +26,4 @@ class SchemaCity(BaseModel):
     country: SchemaCountry | None = None
 
     model_config = {"from_attributes": True}
+

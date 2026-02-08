@@ -5,6 +5,7 @@
 Логи пишутся в файл и в консоль.
 """
 
+import json
 import logging
 import os
 import sys
@@ -16,13 +17,83 @@ from typing import Any
 LOGS_DIR = Path(__file__).resolve().parent.parent.parent / "logs"
 LOGS_DIR.mkdir(exist_ok=True)
 
-# Формат логов
-LOG_FORMAT = "[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s"
+# Формат логов для текстового вывода
+TEXT_LOG_FORMAT = "[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s"
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 # Константы для handlers
 MAX_BYTES = 10 * 1024 * 1024  # 10 МБ
 BACKUP_COUNT = 5
+
+
+def _use_json_logs() -> bool:
+    """
+    Определить, включено ли JSON-логирование.
+
+    Управляется переменной окружения LOG_FORMAT_JSON:
+    - "1", "true", "yes" (регистр не важен) -> JSON-логирование включено
+    - любое другое значение или отсутствие переменной -> обычный текстовый формат
+    """
+    value = os.getenv("LOG_FORMAT_JSON", "false").lower()
+    return value in {"1", "true", "yes"}
+
+
+class JsonFormatter(logging.Formatter):
+    """Форматтер, который сериализует записи лога в JSON."""
+
+    def format(self, record: logging.LogRecord) -> str:  # type: ignore[override]
+        # Базовые поля
+        log_record: dict[str, Any] = {
+            "timestamp": self.formatTime(record, DATE_FORMAT),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+        }
+
+        # Полезные стандартные поля (без path с полным путем, чтобы не раздувать лог)
+        log_record.update(
+            {
+                "module": record.module,
+                "funcName": record.funcName,
+                "line": record.lineno,
+            }
+        )
+
+        # Добавляем все дополнительные поля, которые могли быть переданы через extra
+        # Исключаем стандартные атрибуты LogRecord
+        standard_keys = {
+            "name",
+            "msg",
+            "args",
+            "levelname",
+            "levelno",
+            "pathname",
+            "filename",
+            "module",
+            "exc_info",
+            "exc_text",
+            "stack_info",
+            "lineno",
+            "funcName",
+            "created",
+            "msecs",
+            "relativeCreated",
+            "thread",
+            "threadName",
+            "processName",
+            "process",
+        }
+
+        for key, value in record.__dict__.items():
+            if key not in standard_keys and key not in log_record:
+                try:
+                    json.dumps(value)  # проверяем, что значение сериализуемо
+                    log_record[key] = value
+                except TypeError:
+                    # Несериализуемые объекты в JSON не добавляем
+                    log_record[key] = repr(value)
+
+        return json.dumps(log_record, ensure_ascii=False)
 
 
 def _get_log_level() -> str:
@@ -37,7 +108,11 @@ def _get_log_level() -> str:
 
 def _create_handlers(log_file: Path, level: int) -> tuple[logging.FileHandler, logging.StreamHandler[Any]]:
     """Создать file и console handlers с общим форматтером."""
-    formatter = logging.Formatter(LOG_FORMAT, datefmt=DATE_FORMAT)
+    # Выбираем форматтер в зависимости от настройки LOG_FORMAT_JSON
+    if _use_json_logs():
+        formatter: logging.Formatter = JsonFormatter()
+    else:
+        formatter = logging.Formatter(TEXT_LOG_FORMAT, datefmt=DATE_FORMAT)
 
     file_handler = RotatingFileHandler(
         log_file, maxBytes=MAX_BYTES, backupCount=BACKUP_COUNT, encoding="utf-8", delay=False
