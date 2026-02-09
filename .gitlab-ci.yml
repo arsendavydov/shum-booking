@@ -374,12 +374,41 @@ deploy:production:
       
       echo "📋 Создание ConfigMap booking-config из переменных GitLab CI/CD..."
       
+      # Загружаем переменные из .prod.env файла на сервере (если файл существует)
+      echo "📥 Загрузка переменных из .prod.env на сервере..."
+      if ssh -i ~/.ssh/k3s_key \
+          -o StrictHostKeyChecking=no \
+          -o ConnectTimeout=10 \
+          -o BatchMode=yes \
+          $K3S_SSH_USER@$K3S_SERVER_IP "test -f ~/.prod.env && cat ~/.prod.env" > /tmp/prod.env 2>/dev/null; then
+        echo "✅ Файл .prod.env найден на сервере, загружаем переменные..."
+        # Фильтруем комментарии и пустые строки, затем загружаем
+        grep -v '^#' /tmp/prod.env | grep -v '^$' | grep '=' > /tmp/prod.env.clean 2>/dev/null || true
+        if [ -f /tmp/prod.env.clean ]; then
+          set -a
+          source /tmp/prod.env.clean 2>/dev/null || true
+          set +a
+          rm -f /tmp/prod.env /tmp/prod.env.clean
+          echo "✅ Переменные загружены из .prod.env на сервере"
+        else
+          echo "⚠️  Не удалось обработать .prod.env файл"
+          rm -f /tmp/prod.env /tmp/prod.env.clean
+        fi
+      else
+        echo "⚠️  Файл .prod.env не найден на сервере или не удалось его прочитать"
+        echo "   Используем переменные из GitLab CI/CD Variables (если заданы)"
+      fi
+      
       # Проверка наличия обязательных переменных rate limit
       if [ -z "$RATE_LIMIT_PER_MINUTE" ] || [ -z "$RATE_LIMIT_AUTH_PER_MINUTE" ]; then
-        echo "❌ ОШИБКА: Переменные RATE_LIMIT_PER_MINUTE и RATE_LIMIT_AUTH_PER_MINUTE должны быть заданы в GitLab CI/CD Variables!"
-        echo "   Перейдите в Settings > CI/CD > Variables и добавьте эти переменные."
+        echo "❌ ОШИБКА: Переменные RATE_LIMIT_PER_MINUTE и RATE_LIMIT_AUTH_PER_MINUTE должны быть заданы!"
+        echo "   Либо в GitLab CI/CD Variables, либо в файле ~/.prod.env на сервере"
         exit 1
       fi
+      
+      echo "✅ Переменные rate limit найдены:"
+      echo "   RATE_LIMIT_PER_MINUTE=${RATE_LIMIT_PER_MINUTE}"
+      echo "   RATE_LIMIT_AUTH_PER_MINUTE=${RATE_LIMIT_AUTH_PER_MINUTE}"
       
       # Удаление существующего ConfigMap (если есть)
       kubectl delete configmap booking-config -n $KUBE_NAMESPACE --ignore-not-found=true --request-timeout=30s || true
