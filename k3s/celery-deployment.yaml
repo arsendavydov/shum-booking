@@ -111,10 +111,10 @@ spec:
           mountPath: /app/src/static/temp
         resources:
           requests:
-            memory: "64Mi"
+            memory: "128Mi"
             cpu: "15m"
           limits:
-            memory: "128Mi"
+            memory: "256Mi"
             cpu: "30m"
       volumes:
       - name: images-storage
