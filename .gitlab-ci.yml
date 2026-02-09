@@ -156,7 +156,7 @@ deploy:production:
   stage: deploy
   image: alpine/k8s:1.28.0
   before_script:
-    - apk add --no-cache openssh-client
+    - apk add --no-cache openssh-client netcat-openbsd
     - kubectl version --client
     # Настройка SSH для туннеля к K3s
     - |
@@ -181,16 +181,67 @@ deploy:production:
         echo "❌ KUBECONFIG_BASE64 не настроен!"
         exit 1
       fi
-    # Создаем SSH туннель в фоне
+    # Создаем SSH туннель в фоне с проверкой
     - |
-      ssh -i ~/.ssh/k3s_key -o StrictHostKeyChecking=no -f -N -L 6443:127.0.0.1:6443 $K3S_SSH_USER@$K3S_SERVER_IP || true
-      sleep 2
+      echo "🔗 Создание SSH туннеля к K3s API..."
+      # Убиваем старые SSH процессы, если есть
+      pkill -f "ssh.*6443:127.0.0.1:6443" || true
+      sleep 1
+      # Создаем туннель
+      ssh -i ~/.ssh/k3s_key \
+          -o StrictHostKeyChecking=no \
+          -o ServerAliveInterval=30 \
+          -o ServerAliveCountMax=3 \
+          -o ConnectTimeout=10 \
+          -f -N -L 6443:127.0.0.1:6443 \
+          $K3S_SSH_USER@$K3S_SERVER_IP
+      sleep 3
+      # Проверяем, что туннель работает
+      if ! nc -z 127.0.0.1 6443 2>/dev/null; then
+        echo "❌ SSH туннель не работает, пытаемся еще раз..."
+        pkill -f "ssh.*6443:127.0.0.1:6443" || true
+        sleep 2
+        ssh -i ~/.ssh/k3s_key \
+            -o StrictHostKeyChecking=no \
+            -o ServerAliveInterval=30 \
+            -o ServerAliveCountMax=3 \
+            -o ConnectTimeout=10 \
+            -f -N -L 6443:127.0.0.1:6443 \
+            $K3S_SSH_USER@$K3S_SERVER_IP
+        sleep 3
+      fi
+      echo "✅ SSH туннель создан"
     # Обновляем kubeconfig для использования localhost через туннель
     - |
       sed -i "s|server: https://$K3S_SERVER_IP:6443|server: https://127.0.0.1:6443|g" ~/.kube/config
-    # Проверка подключения к кластеру
-    - kubectl cluster-info
-    - kubectl get nodes
+    # Проверка подключения к кластеру с retry
+    - |
+      echo "🔍 Проверка подключения к кластеру..."
+      for i in {1..5}; do
+        if kubectl cluster-info &>/dev/null; then
+          echo "✅ Подключение к кластеру успешно"
+          break
+        else
+          echo "⏳ Попытка $i/5: ожидание подключения..."
+          sleep 3
+          # Пересоздаем туннель, если нужно
+          if [ $i -eq 3 ]; then
+            echo "🔄 Пересоздание SSH туннеля..."
+            pkill -f "ssh.*6443:127.0.0.1:6443" || true
+            sleep 2
+            ssh -i ~/.ssh/k3s_key \
+                -o StrictHostKeyChecking=no \
+                -o ServerAliveInterval=30 \
+                -o ServerAliveCountMax=3 \
+                -o ConnectTimeout=10 \
+                -f -N -L 6443:127.0.0.1:6443 \
+                $K3S_SSH_USER@$K3S_SERVER_IP
+            sleep 3
+          fi
+        fi
+      done
+      kubectl cluster-info
+      kubectl get nodes
     # Проверка доступных ресурсов на сервере
     - |
       echo "🔍 Проверка ресурсов сервера..."
