@@ -246,7 +246,16 @@ deploy:production:
       # Применяем манифесты в правильном порядке с проверкой туннеля
       check_tunnel && apply_with_retry k3s/namespace.yaml
       check_tunnel && apply_with_retry k3s/storageclass.yaml
-      check_tunnel && apply_with_retry k3s/configmap.yaml
+      # ConfigMap создается вручную через create-secrets.sh из .prod.env
+      # Не применяем configmap.yaml, так как он теперь шаблон
+      if ! kubectl get configmap booking-config -n $KUBE_NAMESPACE &>/dev/null; then
+        echo "⚠️  Warning: ConfigMap booking-config не найден!"
+        echo "   ConfigMap должен быть создан вручную на сервере через:"
+        echo "   ./k3s/create-secrets.sh"
+        echo "   Продолжаем деплой, но поды могут не запуститься..."
+      else
+        echo "✅ ConfigMap booking-config найден"
+      fi
       check_tunnel && apply_with_retry k3s/nginx-configmap.yaml
     # Удаляем старый PVC если он существует с неправильными параметрами (accessModes нельзя изменить)
     - |
