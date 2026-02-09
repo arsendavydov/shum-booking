@@ -258,6 +258,21 @@ deploy:production:
       echo "📋 Ресурсы текущих подов:"
       kubectl get pods -A -o custom-columns=NAMESPACE:.metadata.namespace,NAME:.metadata.name,CPU-REQ:.spec.containers[*].resources.requests.cpu,MEM-REQ:.spec.containers[*].resources.requests.memory,CPU-LIM:.spec.containers[*].resources.limits.cpu,MEM-LIM:.spec.containers[*].resources.limits.memory 2>/dev/null | head -20 || true
   script:
+    # Проверяем, что туннель все еще работает перед применением манифестов
+    - |
+      if ! nc -z 127.0.0.1 6443 2>/dev/null; then
+        echo "⚠️  Туннель разорвался, пересоздаем..."
+        pkill -f "ssh.*6443:127.0.0.1:6443" || true
+        sleep 2
+        ssh -i ~/.ssh/k3s_key \
+            -o StrictHostKeyChecking=no \
+            -o ServerAliveInterval=30 \
+            -o ServerAliveCountMax=3 \
+            -o ConnectTimeout=10 \
+            -f -N -L 6443:127.0.0.1:6443 \
+            $K3S_SSH_USER@$K3S_SERVER_IP
+        sleep 3
+      fi
     # Обновляем образы в deployment манифестах
     - |
       sed -i "s|registry.gitlab.com/arsen-davydov-main/shum_booking_v2:latest|$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA|g" k3s/fastapi-deployment.yaml
