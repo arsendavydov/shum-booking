@@ -76,37 +76,30 @@ data:
         limit_req_zone $binary_remote_addr zone=api_limit:10m rate=60r/m;
         limit_req_zone $binary_remote_addr zone=auth_limit:10m rate=5r/m;
 
-        # DNS resolver для Kubernetes (CoreDNS)
-        resolver kube-dns.kube-system.svc.cluster.local valid=10s;
-
-        # Upstream для FastAPI
+        # Upstream для FastAPI (используем короткое имя сервиса - Kubernetes DNS резолвит автоматически)
         upstream fastapi_backend {
             least_conn;
-            # Используем полное FQDN имя сервиса
-            server fastapi-service.booking.svc.cluster.local:80 max_fails=3 fail_timeout=30s;
+            server fastapi-service:80 max_fails=3 fail_timeout=30s;
             keepalive 32;
         }
 
-        # Основной сервер
-        server {
-            listen 80;
-            server_name _;
+            # Основной сервер
+            server {
+                listen 80;
+                server_name _;
 
-            # Статические файлы (изображения)
-            location /static/images/ {
-                alias /usr/share/nginx/html/images/;
-                expires 30d;
-                add_header Cache-Control "public, immutable";
-                access_log off;
-                try_files $uri @fastapi;
-            }
+                # Статические файлы (изображения)
+                location /static/images/ {
+                    alias /usr/share/nginx/html/images/;
+                    expires 30d;
+                    add_header Cache-Control "public, immutable";
+                    access_log off;
+                    try_files $uri @fastapi;
+                }
 
-            # Переменная для ленивого резолвинга DNS
-            set $fastapi_backend "fastapi-service.booking.svc.cluster.local:80";
-
-            # Health checks
-            location ~ ^/(health|ready|live)$ {
-                proxy_pass http://$fastapi_backend;
+                # Health checks
+                location ~ ^/(health|ready|live)$ {
+                    proxy_pass http://fastapi_backend;
                 proxy_set_header Host $host;
                 proxy_set_header X-Real-IP $remote_addr;
                 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -116,7 +109,7 @@ data:
 
             # Метрики Prometheus
             location /metrics {
-                proxy_pass http://$fastapi_backend;
+                proxy_pass http://fastapi_backend;
                 proxy_set_header Host $host;
                 proxy_set_header X-Real-IP $remote_addr;
                 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -128,7 +121,7 @@ data:
                 limit_req zone=auth_limit burst=2 nodelay;
                 limit_req_status 429;
                 
-                proxy_pass http://$fastapi_backend;
+                proxy_pass http://fastapi_backend;
                 proxy_set_header Host $host;
                 proxy_set_header X-Real-IP $remote_addr;
                 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -144,7 +137,7 @@ data:
                 limit_req zone=api_limit burst=10 nodelay;
                 limit_req_status 429;
                 
-                proxy_pass http://$fastapi_backend;
+                proxy_pass http://fastapi_backend;
                 proxy_set_header Host $host;
                 proxy_set_header X-Real-IP $remote_addr;
                 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -167,7 +160,7 @@ data:
 
             # Fallback на FastAPI
             location @fastapi {
-                proxy_pass http://$fastapi_backend;
+                proxy_pass http://fastapi_backend;
                 proxy_set_header Host $host;
                 proxy_set_header X-Real-IP $remote_addr;
                 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
