@@ -88,18 +88,25 @@ data:
                 listen 80;
                 server_name _;
 
-                # Статические файлы (изображения)
-                location /static/images/ {
-                    alias /usr/share/nginx/html/images/;
-                    expires 30d;
-                    add_header Cache-Control "public, immutable";
-                    access_log off;
-                    try_files $uri @fastapi;
-                }
+            # Health check для самого nginx (readiness/liveness probe)
+            location = /health {
+                access_log off;
+                return 200 "healthy\n";
+                add_header Content-Type text/plain;
+            }
 
-                # Health checks
-                location ~ ^/(health|ready|live)$ {
-                    proxy_pass http://fastapi_backend;
+            # Статические файлы (изображения)
+            location /static/images/ {
+                alias /usr/share/nginx/html/images/;
+                expires 30d;
+                add_header Cache-Control "public, immutable";
+                access_log off;
+                try_files $uri @fastapi;
+            }
+
+            # Health checks для FastAPI (проксируем на backend)
+            location ~ ^/(ready|live)$ {
+                proxy_pass http://fastapi_backend;
                 proxy_set_header Host $host;
                 proxy_set_header X-Real-IP $remote_addr;
                 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
