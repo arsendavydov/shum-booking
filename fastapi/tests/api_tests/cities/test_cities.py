@@ -40,9 +40,10 @@ class TestCities:
                         assert isinstance(data, dict)
                         assert "id" in data
                         assert "name" in data
-                        assert "country_id" in data
+                        assert "country" in data
                         assert data["name"] == unique_name
-                        assert data["country_id"] == country_id
+                        assert data["country"] is not None
+                        assert data["country"]["id"] == country_id
 
                         client.delete(f"/cities/{city_id}")
                         client.delete(f"/countries/{country_id}")
@@ -266,7 +267,7 @@ class TestCities:
                     data = city_get.json()
                     assert isinstance(data, list)
                     assert len(data) >= 1
-                    assert any(c["country_id"] == country_id for c in data)
+                    assert any(c.get("country") and c["country"]["id"] == country_id for c in data)
 
                     city_by_name = client.get(f"/cities?name={unique_name}")
                     if city_by_name.status_code == 200 and city_by_name.json():

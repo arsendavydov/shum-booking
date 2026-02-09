@@ -9,6 +9,7 @@ import pytest
 
 from src.exceptions.domain import EntityAlreadyExistsError, EntityNotFoundError
 from src.schemas.cities import SchemaCity
+from src.schemas.countries import SchemaCountry
 from src.services.cities import CitiesService
 
 pytestmark = pytest.mark.unit
@@ -46,11 +47,11 @@ class TestCitiesServiceCreateCity:
         """Проверить успешное создание города."""
         name = "Москва"
         country_id = 1
-        expected_city = SchemaCity(id=1, name=name, country_id=country_id, country=None)
+        from src.models.countries import CountriesOrm
 
-        from src.schemas.countries import SchemaCountry
+        expected_city = SchemaCity(id=1, name=name, country=SchemaCountry(id=country_id, name="Россия", iso_code="RU"))
 
-        mock_countries_repo._get_one_by_id_exact.return_value = SchemaCountry(id=country_id, name="Россия", iso_code="RU")
+        mock_countries_repo._get_one_by_id_exact.return_value = CountriesOrm(id=country_id, name="Россия", iso_code="RU")
         mock_cities_repo.get_by_name_and_country_id.return_value = None
         mock_cities_repo.create.return_value = expected_city
 
@@ -88,11 +89,12 @@ class TestCitiesServiceCreateCity:
         """Проверить, что создание города с существующим названием выбрасывает исключение."""
         name = "Москва"
         country_id = 1
-        existing_city = SchemaCity(id=1, name=name, country_id=country_id)
+        from src.models.countries import CountriesOrm
 
-        from src.schemas.countries import SchemaCountry
+        existing_city = SchemaCity(id=1, name=name, country=SchemaCountry(id=country_id, name="Россия", iso_code="RU"))
 
-        mock_countries_repo._get_one_by_id_exact.return_value = SchemaCountry(id=country_id, name="Россия", iso_code="RU")
+
+        mock_countries_repo._get_one_by_id_exact.return_value = CountriesOrm(id=country_id, name="Россия", iso_code="RU")
         mock_cities_repo.get_by_name_and_country_id.return_value = existing_city
 
         with patch("src.utils.db_manager.DBManager.get_countries_repository", return_value=mock_countries_repo), patch(
@@ -117,13 +119,15 @@ class TestCitiesServiceUpdateCity:
         city_id = 1
         name = "Новое Название"
         country_id = 1
-        existing_city_orm = SchemaCity(id=city_id, name="Старое Название", country_id=country_id)
-        updated_city = SchemaCity(id=city_id, name=name, country_id=country_id)
+        from src.models.cities import CitiesOrm
+        from src.models.countries import CountriesOrm
+
+        existing_city_orm = CitiesOrm(id=city_id, name="Старое Название", country_id=country_id)
+        updated_city = SchemaCity(id=city_id, name=name, country=SchemaCountry(id=country_id, name="Россия", iso_code="RU"))
 
         mock_cities_repo._get_one_by_id_exact.return_value = existing_city_orm
-        from src.schemas.countries import SchemaCountry
 
-        mock_countries_repo._get_one_by_id_exact.return_value = SchemaCountry(id=country_id, name="Россия", iso_code="RU")
+        mock_countries_repo._get_one_by_id_exact.return_value = CountriesOrm(id=country_id, name="Россия", iso_code="RU")
         mock_cities_repo.get_by_name_and_country_id.return_value = None
         mock_cities_repo.edit.return_value = updated_city
 
@@ -162,7 +166,9 @@ class TestCitiesServiceUpdateCity:
         city_id = 1
         name = "Новое Название"
         country_id = 999
-        existing_city_orm = SchemaCity(id=city_id, name="Старое Название", country_id=1)
+        from src.models.cities import CitiesOrm
+
+        existing_city_orm = CitiesOrm(id=city_id, name="Старое Название", country_id=1)
 
         mock_cities_repo._get_one_by_id_exact.return_value = existing_city_orm
         mock_countries_repo._get_one_by_id_exact.return_value = None
@@ -184,13 +190,15 @@ class TestCitiesServiceUpdateCity:
         city_id = 1
         name = "Москва"
         country_id = 1
-        existing_city_orm = SchemaCity(id=city_id, name=name, country_id=country_id)
-        updated_city = SchemaCity(id=city_id, name=name, country_id=country_id)
+        from src.models.cities import CitiesOrm
+        from src.models.countries import CountriesOrm
+
+        existing_city_orm = CitiesOrm(id=city_id, name=name, country_id=country_id)
+        updated_city = SchemaCity(id=city_id, name=name, country=SchemaCountry(id=country_id, name="Россия", iso_code="RU"))
 
         mock_cities_repo._get_one_by_id_exact.return_value = existing_city_orm
-        from src.schemas.countries import SchemaCountry
 
-        mock_countries_repo._get_one_by_id_exact.return_value = SchemaCountry(id=country_id, name="Россия", iso_code="RU")
+        mock_countries_repo._get_one_by_id_exact.return_value = CountriesOrm(id=country_id, name="Россия", iso_code="RU")
         mock_cities_repo.edit.return_value = updated_city
 
         with patch("src.utils.db_manager.DBManager.get_countries_repository", return_value=mock_countries_repo), patch(
@@ -214,8 +222,8 @@ class TestCitiesServicePartialUpdateCity:
         from src.models.cities import CitiesOrm
 
         existing_city_orm = CitiesOrm(id=city_id, name="Старое Название", country_id=1)
-        existing_city = SchemaCity(id=city_id, name="Старое Название", country_id=1, country=None)
-        updated_city = SchemaCity(id=city_id, name=name, country_id=1, country=None)
+        existing_city = SchemaCity(id=city_id, name="Старое Название", country=SchemaCountry(id=1, name="Россия", iso_code="RU"))
+        updated_city = SchemaCity(id=city_id, name=name, country=SchemaCountry(id=1, name="Россия", iso_code="RU"))
 
         mock_cities_repo._to_schema = lambda x: existing_city
         mock_cities_repo.get_by_name_and_country_id.return_value = None
@@ -243,7 +251,7 @@ class TestCitiesServicePartialUpdateCity:
         from src.models.cities import CitiesOrm
 
         existing_city_orm = CitiesOrm(id=city_id, name="Москва", country_id=1)
-        existing_city = SchemaCity(id=city_id, name="Москва", country_id=1, country=None)
+        existing_city = SchemaCity(id=city_id, name="Москва", country=SchemaCountry(id=1, name="Россия", iso_code="RU"))
 
         mock_cities_repo._to_schema = lambda x: existing_city
 

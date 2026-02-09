@@ -186,7 +186,7 @@ def setup_test_city(client):
             if cities_response.status_code == 200:
                 cities = cities_response.json()
                 for city in cities:
-                    if city["name"].lower() == "москва" and city["country_id"] == country_id:
+                    if city["name"].lower() == "москва" and city.get("country") and city["country"]["id"] == country_id:
                         city_exists = True
                         print(f"✅ Город 'Москва' уже существует с ID: {city['id']}")
                         break

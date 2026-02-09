@@ -26,7 +26,6 @@ class CitiesMapper(DataMapper[CitiesOrm, SchemaCity]):
         return SchemaCity(
             id=orm_obj.id,
             name=orm_obj.name,
-            country_id=orm_obj.country_id,
             country=SchemaCountry(id=orm_obj.country.id, name=orm_obj.country.name, iso_code=orm_obj.country.iso_code)
             if orm_obj.country
             else None,

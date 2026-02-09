@@ -73,6 +73,7 @@ class CitiesService(BaseService):
             raise EntityNotFoundError("Страна", entity_id=country_id)
 
         # Проверяем уникальность города в стране, если изменяется name или country_id
+        # existing_city_orm - это ORM объект, у него есть country_id
         if name != existing_city_orm.name or country_id != existing_city_orm.country_id:
             existing_city_check = await self.cities_repo.get_by_name_and_country_id(name, country_id)
             if existing_city_check is not None and existing_city_check.id != city_id:
@@ -141,7 +142,8 @@ class CitiesService(BaseService):
 
         # Проверяем уникальность города в стране
         final_name = update_data.get("name", existing_city.name)
-        final_country_id = update_data.get("country_id", existing_city.country_id)
+        # existing_city - это SchemaCity, у него нет country_id, только country объект
+        final_country_id = update_data.get("country_id", existing_city.country.id if existing_city.country else None)
 
         # Проверяем, изменилось ли что-то, что требует проверки уникальности
         if final_name != existing_city.name or final_country_id != existing_city.country_id:

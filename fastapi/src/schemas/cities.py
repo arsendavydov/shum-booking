@@ -22,7 +22,6 @@ class SchemaCity(BaseModel):
 
     id: int
     name: str
-    country_id: int
     country: SchemaCountry | None = None
 
     model_config = {"from_attributes": True}
