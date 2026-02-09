@@ -209,7 +209,8 @@ deploy:production:
       substitute_vars() {
         local file=$1
         # Образы приложений
-        sed -i "s|registry.gitlab.com/arsen-davydov-main/shum_booking_v2:latest|$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA|g" "$file"
+        # Обновляем теги образов на актуальные (CI_REGISTRY_IMAGE уже содержит правильный путь нового репозитория)
+        sed -i "s|${CI_REGISTRY_IMAGE}:latest|$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA|g" "$file" || true
         sed -i "s|\${CI_REGISTRY_IMAGE}/nginx:latest|$CI_REGISTRY_IMAGE/nginx:$CI_COMMIT_SHA|g" "$file"
         
         # Kubernetes переменные (replicas, resources, storage, images, health checks)
