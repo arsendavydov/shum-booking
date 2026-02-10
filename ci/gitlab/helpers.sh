@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env bash 
 set -euo pipefail
 
 # Общие вспомогательные функции для GitLab CI деплоя в K3s
