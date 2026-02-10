@@ -1,0 +1,109 @@
+name: Deploy to K3s (production)
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      K3S_SERVER_IP: ${{ secrets.K3S_SERVER_IP }}
+      K3S_SSH_USER: ${{ secrets.K3S_SSH_USER }}
+      K3S_SSH_KEY_BASE64: ${{ secrets.K3S_SSH_KEY_BASE64 }}
+      KUBE_NAMESPACE: booking
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openssh-client netcat-openbsd curl
+          # Устанавливаем kubectl
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+          kubectl version --client
+
+      - name: Prepare SSH key
+        run: |
+          if [ -z "$K3S_SSH_KEY_BASE64" ] || [ -z "$K3S_SERVER_IP" ] || [ -z "$K3S_SSH_USER" ]; then
+            echo "❌ K3S_SSH_KEY_BASE64, K3S_SERVER_IP или K3S_SSH_USER не настроены в GitHub Secrets!"
+            exit 1
+          fi
+          mkdir -p ~/.ssh
+          echo "$K3S_SSH_KEY_BASE64" | base64 -d > ~/.ssh/k3s_key
+          chmod 600 ~/.ssh/k3s_key
+          ssh-keyscan -H "$K3S_SERVER_IP" >> ~/.ssh/known_hosts 2>/dev/null || true
+          echo "✅ SSH key and known_hosts configured"
+
+      - name: Export CI vars and check ACTIVE_CI_PROVIDER
+        run: |
+          export K3S_SSH_KEY_PATH="$HOME/.ssh/k3s_key"
+          export K3S_SSH_USER
+          export K3S_SERVER_IP
+          export K3S_SSH_HOST="$K3S_SSH_USER@$K3S_SERVER_IP"
+          export KUBE_CONFIG_PATH="$HOME/.kube/config"
+          chmod +x ci/gitlab/*.sh ci/common/*.sh || true
+          export ACTIVE_CI_PROVIDER_EXPECTED=github
+          ci/common/check-active-provider.sh || { echo "⚠️ ACTIVE_CI_PROVIDER не github, деплой из GitHub пропускаем"; exit 0; }
+
+      - name: Get kubeconfig from server
+        run: |
+          ci/gitlab/get-kubeconfig.sh
+
+      - name: Deploy manifests (reuse GitLab scripts)
+        env:
+          CI_REGISTRY_IMAGE: ${{ secrets.CI_REGISTRY_IMAGE || 'registry.gitlab.com/shum-bookin/shum-booking' }}
+          CI_COMMIT_SHA: ${{ github.sha }}
+        run: |
+          echo "=== DEPLOY (GitHub): экспорт переменных и обновление тегов образов ==="
+          export FASTAPI_REPLICAS=${FASTAPI_REPLICAS:-1}
+          export CELERY_REPLICAS=${CELERY_REPLICAS:-1}
+          export NGINX_REPLICAS=${NGINX_REPLICAS:-1}
+          export POSTGRES_REPLICAS=${POSTGRES_REPLICAS:-1}
+          export REDIS_REPLICAS=${REDIS_REPLICAS:-1}
+          export FASTAPI_MEMORY_REQUEST=${FASTAPI_MEMORY_REQUEST:-256Mi}
+          export FASTAPI_CPU_REQUEST=${FASTAPI_CPU_REQUEST:-20m}
+          export CELERY_MEMORY_REQUEST=${CELERY_MEMORY_REQUEST:-128Mi}
+          export CELERY_CPU_REQUEST=${CELERY_CPU_REQUEST:-15m}
+          export NGINX_MEMORY_REQUEST=${NGINX_MEMORY_REQUEST:-32Mi}
+          export NGINX_CPU_REQUEST=${NGINX_CPU_REQUEST:-10m}
+          export NGINX_MEMORY_LIMIT=${NGINX_MEMORY_LIMIT:-64Mi}
+          export NGINX_CPU_LIMIT=${NGINX_CPU_LIMIT:-20m}
+          export POSTGRES_MEMORY_REQUEST=${POSTGRES_MEMORY_REQUEST:-128Mi}
+          export POSTGRES_CPU_REQUEST=${POSTGRES_CPU_REQUEST:-40m}
+          export POSTGRES_MEMORY_LIMIT=${POSTGRES_MEMORY_LIMIT:-256Mi}
+          export POSTGRES_CPU_LIMIT=${POSTGRES_CPU_LIMIT:-60m}
+          export REDIS_MEMORY_REQUEST=${REDIS_MEMORY_REQUEST:-64Mi}
+          export REDIS_CPU_REQUEST=${REDIS_CPU_REQUEST:-20m}
+          export REDIS_MEMORY_LIMIT=${REDIS_MEMORY_LIMIT:-128Mi}
+          export REDIS_CPU_LIMIT=${REDIS_CPU_LIMIT:-40m}
+          export POSTGRES_STORAGE_SIZE=${POSTGRES_STORAGE_SIZE:-20Gi}
+          export REDIS_STORAGE_SIZE=${REDIS_STORAGE_SIZE:-5Gi}
+          export IMAGES_STORAGE_SIZE=${IMAGES_STORAGE_SIZE:-5Gi}
+          export POSTGRES_IMAGE_TAG=${POSTGRES_IMAGE_TAG:-postgres:16}
+          export REDIS_IMAGE_TAG=${REDIS_IMAGE_TAG:-redis:7-alpine}
+          export DOMAIN=${DOMAIN:-async-black.ru}
+          export LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL:-arsen.davydov@gmail.com}
+          export LETSENCRYPT_SERVER=${LETSENCRYPT_SERVER:-production}
+          export HEALTH_CHECK_INITIAL_DELAY=${HEALTH_CHECK_INITIAL_DELAY:-30}
+          export HEALTH_CHECK_PERIOD=${HEALTH_CHECK_PERIOD:-10}
+          export HEALTH_CHECK_TIMEOUT=${HEALTH_CHECK_TIMEOUT:-5}
+          export HEALTH_CHECK_FAILURE_THRESHOLD=${HEALTH_CHECK_FAILURE_THRESHOLD:-3}
+          export HEALTH_CHECK_READINESS_INITIAL_DELAY=${HEALTH_CHECK_READINESS_INITIAL_DELAY:-10}
+          export HEALTH_CHECK_READINESS_PERIOD=${HEALTH_CHECK_READINESS_PERIOD:-5}
+          sed -i "s|${CI_REGISTRY_IMAGE}:latest|$CI_REGISTRY_IMAGE:${CI_COMMIT_SHA}|g" k3s/fastapi-deployment.yaml || true
+          sed -i "s|\${CI_REGISTRY_IMAGE}/nginx:latest|$CI_REGISTRY_IMAGE/nginx:${CI_COMMIT_SHA}|g" k3s/nginx-deployment.yaml
+
+          echo "=== DEPLOY (GitHub): создание ConfigMap и Secret через общий скрипт ==="
+          ci/gitlab/create-configmap-and-secret.sh
+
+          echo "=== DEPLOY (GitHub): применение манифестов через общий скрипт ==="
+          ci/gitlab/apply-manifests.sh
+
+

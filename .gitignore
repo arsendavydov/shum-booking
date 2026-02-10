@@ -72,9 +72,14 @@ logs/
 *.tmp
 *.bak
 
-# Документация (опционально, если не хотите коммитить)
+# Документация (по умолчанию игнорируем, кроме важных файлов)
 *.md
 *.txt
+!README.md
+!ARCHITECTURE.md
+!ci/README.md
+!ci/gitlab/README.md
+!ci/github/README.md
 test_api.py
 
 # Пользовательские тесты и скрипты
