@@ -1,4 +1,33 @@
 # Инициализация пакета src
-from src.connectors.redis_connector import RedisManager
+"""
+Пакет src - основной код приложения.
 
-redis_manager = RedisManager()
+Важно: RedisManager импортируется лениво, чтобы не требовать модуль redis
+при простом импорте модулей (например, для unit-тестов).
+"""
+
+
+def get_redis_manager():
+    """Ленивая инициализация RedisManager."""
+    from src.connectors.redis_connector import RedisManager
+    
+    if not hasattr(get_redis_manager, '_instance'):
+        get_redis_manager._instance = RedisManager()
+    return get_redis_manager._instance
+
+
+# Экспортируем redis_manager как свойство для обратной совместимости
+# При первом обращении будет создан экземпляр
+class _RedisManagerProxy:
+    """Прокси для ленивой инициализации RedisManager."""
+    
+    def __getattr__(self, name):
+        manager = get_redis_manager()
+        return getattr(manager, name)
+    
+    def __call__(self, *args, **kwargs):
+        manager = get_redis_manager()
+        return manager(*args, **kwargs)
+
+
+redis_manager = _RedisManagerProxy()

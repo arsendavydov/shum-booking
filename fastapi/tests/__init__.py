@@ -1,4 +1,11 @@
-# Экспорт общих переменных и фикстур из conftest для удобного импорта
-from tests.conftest import BASE_URL, TEST_EXAMPLE_EMAIL_DOMAIN, TEST_PASSWORD, TEST_PREFIX
+"""
+Пакет с тестами.
 
-__all__ = ["BASE_URL", "TEST_EXAMPLE_EMAIL_DOMAIN", "TEST_PASSWORD", "TEST_PREFIX"]
+Важно:
+- Не делаем импорт из `tests.conftest` на уровне модуля, чтобы при запуске
+  unit-тестов (tests/unit_tests) не требовался `.test.env` и переменная TEST_PASSWORD.
+- API-тесты и другие тесты, которым нужны BASE_URL/TEST_*,
+  импортируют их напрямую из `tests.conftest`.
+"""
+
+__all__: list[str] = []
