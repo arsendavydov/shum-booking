@@ -22,7 +22,6 @@ if ssh -i "$K3S_SSH_KEY_PATH" \
     -o ConnectTimeout=10 \
     -o BatchMode=yes \
     "${K3S_SSH_USER}@${K3S_SERVER_IP}" "test -f ~/.prod.env && cat ~/.prod.env" > "$TMP_ENV" 2>/dev/null; then
-  # shellcheck disable=SC1090
   ACTIVE_CI_PROVIDER=$(grep "^ACTIVE_CI_PROVIDER=" "$TMP_ENV" 2>/dev/null | sed 's/ACTIVE_CI_PROVIDER=//g' || echo "")
   rm -f "$TMP_ENV"
 else

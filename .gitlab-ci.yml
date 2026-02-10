@@ -246,7 +246,7 @@ rollback:production:
       ssh-keyscan -H $K3S_SERVER_IP >> ~/.ssh/known_hosts 2>/dev/null || true
     - |
       # Получаем kubeconfig с сервера через SSH
-      mkdir -p ~/.kube
+        mkdir -p ~/.kube
       if ssh -i ~/.ssh/k3s_key \
           -o StrictHostKeyChecking=no \
           -o ConnectTimeout=10 \
