@@ -95,7 +95,7 @@ async def register_user(
     if should_collect_metrics():
         auth_registrations_total.inc()
 
-    # Преобразуем SchemaUser в UserResponse (они идентичны, но для ясности используем UserResponse) 
+    # Преобразуем SchemaUser в UserResponse (они идентичны, но для ясности используем UserResponse)
     return UserResponse.model_validate(user)
 
 
