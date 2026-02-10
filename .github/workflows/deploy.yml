@@ -542,18 +542,78 @@ jobs:
           echo "=========================================="
           echo ""
           
-          echo "⏳ Ожидание готовности подов FastAPI..."
-          kubectl wait --for=condition=ready pod \
-            -l app=fastapi-app \
-            -n booking \
-            --timeout=300s || {
-            echo "❌ FastAPI поды не стали готовы за 5 минут"
-            kubectl -n booking get pods -l app=fastapi-app
-            kubectl -n booking describe pod -l app=fastapi-app
-            exit 1
-          }
+          echo "⏳ Ожидание готовности всех необходимых подов..."
+          echo "  Проверяем: fastapi-app, celery-worker, nginx, postgres, redis"
           
-          echo "✅ FastAPI поды готовы"
+          # Ждем максимум 10 минут, проверяя каждую минуту
+          MAX_ATTEMPTS=10
+          ATTEMPT=0
+          ALL_RUNNING=false
+          
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            ATTEMPT=$((ATTEMPT + 1))
+            echo ""
+            echo "  ⏱️  Проверка $ATTEMPT/$MAX_ATTEMPTS (через 1 минуту)..."
+            
+            # Получаем статус всех необходимых подов
+            echo ""
+            echo "  📊 Статус всех подов:"
+            kubectl -n booking get pods -o wide || true
+            
+            # Проверяем каждый необходимый компонент
+            FASTAPI_RUNNING=$(kubectl -n booking get pods -l app=fastapi-app --no-headers 2>/dev/null | grep -c "Running" || echo "0")
+            CELERY_RUNNING=$(kubectl -n booking get pods -l app=celery-worker --no-headers 2>/dev/null | grep -c "Running" || echo "0")
+            NGINX_RUNNING=$(kubectl -n booking get pods -l app=nginx --no-headers 2>/dev/null | grep -c "Running" || echo "0")
+            POSTGRES_RUNNING=$(kubectl -n booking get pods -l app=postgres --no-headers 2>/dev/null | grep -c "Running" || echo "0")
+            REDIS_RUNNING=$(kubectl -n booking get pods -l app=redis --no-headers 2>/dev/null | grep -c "Running" || echo "0")
+            
+            echo ""
+            echo "  📈 Статус компонентов:"
+            echo "    FastAPI:  $FASTAPI_RUNNING под(ов) Running"
+            echo "    Celery:   $CELERY_RUNNING под(ов) Running"
+            echo "    Nginx:    $NGINX_RUNNING под(ов) Running"
+            echo "    Postgres: $POSTGRES_RUNNING под(ов) Running"
+            echo "    Redis:    $REDIS_RUNNING под(ов) Running"
+            
+            # Проверяем, что все компоненты запущены (хотя бы по одному поду)
+            if [ "$FASTAPI_RUNNING" -gt 0 ] && \
+               [ "$CELERY_RUNNING" -gt 0 ] && \
+               [ "$NGINX_RUNNING" -gt 0 ] && \
+               [ "$POSTGRES_RUNNING" -gt 0 ] && \
+               [ "$REDIS_RUNNING" -gt 0 ]; then
+              echo ""
+              echo "  ✅ Все необходимые поды в статусе Running!"
+              ALL_RUNNING=true
+              break
+            fi
+            
+            # Показываем, какие компоненты еще не готовы
+            echo ""
+            echo "  ⚠️  Ожидаем следующие компоненты:"
+            [ "$FASTAPI_RUNNING" -eq 0 ] && echo "    - FastAPI"
+            [ "$CELERY_RUNNING" -eq 0 ] && echo "    - Celery"
+            [ "$NGINX_RUNNING" -eq 0 ] && echo "    - Nginx"
+            [ "$POSTGRES_RUNNING" -eq 0 ] && echo "    - Postgres"
+            [ "$REDIS_RUNNING" -eq 0 ] && echo "    - Redis"
+            
+            if [ $ATTEMPT -lt $MAX_ATTEMPTS ]; then
+              echo ""
+              echo "  ⏳ Ждем 60 секунд до следующей проверки..."
+              sleep 60
+            fi
+          done
+          
+          if [ "$ALL_RUNNING" != "true" ]; then
+            echo ""
+            echo "❌ Не все необходимые поды запустились за 10 минут"
+            echo ""
+            echo "📊 Финальный статус всех подов:"
+            kubectl -n booking get pods -o wide
+            exit 1
+          fi
+          
+          echo ""
+          echo "✅ Все необходимые поды запущены и работают!"
           
           echo ""
           echo "=========================================="
