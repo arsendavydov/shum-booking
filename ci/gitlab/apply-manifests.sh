@@ -46,6 +46,12 @@ echo "🔄 Обновление Postgres StatefulSet..."
 kubectl delete statefulset postgres -n "$KUBE_NAMESPACE" --ignore-not-found=true || true
 sleep 3
 apply_with_retry k3s/postgres-statefulset.yaml
+
+echo "🔄 Обновление Redis Deployment и PVC..."
+# Удаляем старый Deployment и PVC Redis, чтобы убрать старые last-applied с плейсхолдерами
+kubectl delete deployment redis -n "$KUBE_NAMESPACE" --ignore-not-found=true || true
+kubectl delete pvc redis-data-pvc -n "$KUBE_NAMESPACE" --ignore-not-found=true || true
+sleep 3
 apply_with_retry k3s/redis-deployment.yaml
 
 echo "🔄 Применение deployment'ов с обновленными ресурсами..."
