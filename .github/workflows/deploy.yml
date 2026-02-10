@@ -100,6 +100,10 @@ jobs:
           sed -i "s|${CI_REGISTRY_IMAGE}:latest|$CI_REGISTRY_IMAGE:${CI_COMMIT_SHA}|g" k3s/fastapi-deployment.yaml || true
           sed -i "s|\${CI_REGISTRY_IMAGE}/nginx:latest|$CI_REGISTRY_IMAGE/nginx:${CI_COMMIT_SHA}|g" k3s/nginx-deployment.yaml
 
+          # Подстановка реплик и размера хранилища для Postgres (убираем плейсхолдеры из манифеста)
+          sed -i "s|\${POSTGRES_REPLICAS:-1}|$POSTGRES_REPLICAS|g" k3s/postgres-statefulset.yaml
+          sed -i "s|\${POSTGRES_STORAGE_SIZE:-20Gi}|$POSTGRES_STORAGE_SIZE|g" k3s/postgres-statefulset.yaml
+
           echo "=== DEPLOY (GitHub): создание ConfigMap и Secret через общий скрипт ==="
           ci/gitlab/create-configmap-and-secret.sh
 
