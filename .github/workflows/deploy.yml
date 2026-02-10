@@ -31,7 +31,14 @@ jobs:
           sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
           kubectl version --client
 
-      - name: Run unit tests
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: fastapi/requirements.txt
+
+      - name: Run linting and unit tests
         run: |
           echo "=========================================="
           echo "=== TESTS: Линтеры + unit тесты ==="
@@ -39,33 +46,45 @@ jobs:
           echo ""
           cd fastapi
           
-          echo "🔧 Установка Python и зависимостей для тестов..."
-          sudo apt-get update
-          sudo apt-get install -y python3.11 python3.11-venv python3-pip
+          echo "🔍 Проверка версии Python..."
+          python --version
           
           echo "📦 Создание виртуального окружения..."
-          python3.11 -m venv venv
+          python -m venv venv
           source venv/bin/activate
           
           echo "📥 Установка зависимостей..."
           pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest pytest-asyncio pytest-mock httpx
           
           echo ""
-          echo "🔍 Запуск ruff (linting)..."
+          echo "=========================================="
+          echo "=== LINT: Запуск ruff ==="
+          echo "=========================================="
+          echo ""
+          echo "🔍 Проверка кода с помощью ruff..."
           ruff check src/ tests/ || {
-            echo "❌ Ruff обнаружил ошибки!"
+            echo "❌ Ruff нашел ошибки!"
             exit 1
           }
+          echo "✅ Ruff проверка прошла успешно!"
           
           echo ""
-          echo "🔍 Запуск pyright (type checking)..."
+          echo "=========================================="
+          echo "=== TYPE CHECK: Запуск pyright ==="
+          echo "=========================================="
+          echo ""
+          echo "🔍 Проверка типов с помощью pyright..."
           pyright src/ || {
-            echo "❌ Pyright обнаружил ошибки типов!"
+            echo "❌ Pyright нашел ошибки типов!"
             exit 1
           }
+          echo "✅ Pyright проверка прошла успешно!"
           
+          echo ""
+          echo "=========================================="
+          echo "=== TESTS: Запуск unit тестов ==="
+          echo "=========================================="
           echo ""
           echo "🧪 Запуск unit тестов..."
           pytest tests/unit_tests/ -v --tb=short --color=yes || {
@@ -74,7 +93,7 @@ jobs:
           }
           
           echo ""
-          echo "✅ Все unit тесты прошли успешно!"
+          echo "✅ Все проверки прошли успешно!"
 
       - name: Login to Container Registry and build/push images
         env:
