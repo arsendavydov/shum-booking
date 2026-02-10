@@ -15,6 +15,8 @@ jobs:
       K3S_SSH_USER: ${{ secrets.K3S_SSH_USER }}
       K3S_SSH_KEY_BASE64: ${{ secrets.K3S_SSH_KEY_BASE64 }}
       KUBE_NAMESPACE: booking
+      # Базовый адрес Docker registry (по умолчанию GitLab Container Registry)
+      CI_REGISTRY: ${{ secrets.CI_REGISTRY || 'registry.gitlab.com' }}
 
     steps:
       - name: Checkout repository
@@ -28,6 +30,44 @@ jobs:
           curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
           sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
           kubectl version --client
+
+      - name: Login to Container Registry and build/push images
+        env:
+          CI_REGISTRY_IMAGE: ${{ secrets.CI_REGISTRY_IMAGE || 'registry.gitlab.com/shum-bookin/shum-booking' }}
+          CI_REGISTRY: ${{ env.CI_REGISTRY }}
+          CI_REGISTRY_USER: ${{ secrets.CI_REGISTRY_USER }}
+          CI_REGISTRY_PASSWORD: ${{ secrets.CI_REGISTRY_PASSWORD }}
+          CI_COMMIT_SHA: ${{ github.sha }}
+        run: |
+          if [ -z "$CI_REGISTRY_USER" ] || [ -z "$CI_REGISTRY_PASSWORD" ]; then
+            echo "❌ CI_REGISTRY_USER или CI_REGISTRY_PASSWORD не настроены в GitHub Secrets – не можем залогиниться в реестр"
+            exit 1
+          fi
+
+          echo "=== LOGIN: Docker registry $CI_REGISTRY ==="
+          echo "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY" -u "$CI_REGISTRY_USER" --password-stdin
+
+          echo "=== BUILD: FastAPI образ (docker build & push) ==="
+          cd fastapi
+          docker build \
+            -f Dockerfile.prod \
+            -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA" \
+            -t "$CI_REGISTRY_IMAGE:latest" \
+            .
+          docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+          docker push "$CI_REGISTRY_IMAGE:latest"
+
+          echo "=== BUILD: Nginx образ (docker build & push) ==="
+          cd ../nginx
+          docker build \
+            -f Dockerfile \
+            -t "$CI_REGISTRY_IMAGE/nginx:$CI_COMMIT_SHA" \
+            -t "$CI_REGISTRY_IMAGE/nginx:latest" \
+            .
+          docker push "$CI_REGISTRY_IMAGE/nginx:$CI_COMMIT_SHA"
+          docker push "$CI_REGISTRY_IMAGE/nginx:latest"
+
+          echo "✅ Образы FastAPI и Nginx успешно собраны и отправлены в реестр"
 
       - name: Prepare SSH key
         run: |
@@ -136,6 +176,7 @@ jobs:
           sed -i "s|\${POSTGRES_CPU_REQUEST:-40m}|$POSTGRES_CPU_REQUEST|g" k3s/postgres-statefulset.yaml
           sed -i "s|\${POSTGRES_MEMORY_LIMIT:-256Mi}|$POSTGRES_MEMORY_LIMIT|g" k3s/postgres-statefulset.yaml
           sed -i "s|\${POSTGRES_CPU_LIMIT:-60m}|$POSTGRES_CPU_LIMIT|g" k3s/postgres-statefulset.yaml
+          sed -i "s|\${POSTGRES_IMAGE_TAG:-postgres:16}|$POSTGRES_IMAGE_TAG|g" k3s/postgres-statefulset.yaml
           sed -i "s|\${HEALTH_CHECK_INITIAL_DELAY:-30}|$HEALTH_CHECK_INITIAL_DELAY|g" k3s/postgres-statefulset.yaml
           sed -i "s|\${HEALTH_CHECK_PERIOD:-10}|$HEALTH_CHECK_PERIOD|g" k3s/postgres-statefulset.yaml
           sed -i "s|\${HEALTH_CHECK_TIMEOUT:-5}|$HEALTH_CHECK_TIMEOUT|g" k3s/postgres-statefulset.yaml
@@ -148,6 +189,7 @@ jobs:
           sed -i "s|\${REDIS_MEMORY_LIMIT:-128Mi}|$REDIS_MEMORY_LIMIT|g" k3s/redis-deployment.yaml
           sed -i "s|\${REDIS_CPU_LIMIT:-40m}|$REDIS_CPU_LIMIT|g" k3s/redis-deployment.yaml
           sed -i "s|\${REDIS_STORAGE_SIZE:-5Gi}|$REDIS_STORAGE_SIZE|g" k3s/redis-deployment.yaml
+          sed -i "s|\${REDIS_IMAGE_TAG:-redis:7-alpine}|$REDIS_IMAGE_TAG|g" k3s/redis-deployment.yaml
           sed -i "s|\${HEALTH_CHECK_INITIAL_DELAY:-30}|$HEALTH_CHECK_INITIAL_DELAY|g" k3s/redis-deployment.yaml
           sed -i "s|\${HEALTH_CHECK_PERIOD:-10}|$HEALTH_CHECK_PERIOD|g" k3s/redis-deployment.yaml
           sed -i "s|\${HEALTH_CHECK_TIMEOUT:-5}|$HEALTH_CHECK_TIMEOUT|g" k3s/redis-deployment.yaml

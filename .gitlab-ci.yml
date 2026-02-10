@@ -171,6 +171,7 @@ deploy:production:
       sed -i "s|\${POSTGRES_CPU_REQUEST:-40m}|$POSTGRES_CPU_REQUEST|g" k3s/postgres-statefulset.yaml
       sed -i "s|\${POSTGRES_MEMORY_LIMIT:-256Mi}|$POSTGRES_MEMORY_LIMIT|g" k3s/postgres-statefulset.yaml
       sed -i "s|\${POSTGRES_CPU_LIMIT:-60m}|$POSTGRES_CPU_LIMIT|g" k3s/postgres-statefulset.yaml
+      sed -i "s|\${POSTGRES_IMAGE_TAG:-postgres:16}|$POSTGRES_IMAGE_TAG|g" k3s/postgres-statefulset.yaml
       sed -i "s|\${HEALTH_CHECK_INITIAL_DELAY:-30}|$HEALTH_CHECK_INITIAL_DELAY|g" k3s/postgres-statefulset.yaml
       sed -i "s|\${HEALTH_CHECK_PERIOD:-10}|$HEALTH_CHECK_PERIOD|g" k3s/postgres-statefulset.yaml
       sed -i "s|\${HEALTH_CHECK_TIMEOUT:-5}|$HEALTH_CHECK_TIMEOUT|g" k3s/postgres-statefulset.yaml
@@ -182,6 +183,7 @@ deploy:production:
       sed -i "s|\${REDIS_MEMORY_LIMIT:-128Mi}|$REDIS_MEMORY_LIMIT|g" k3s/redis-deployment.yaml
       sed -i "s|\${REDIS_CPU_LIMIT:-40m}|$REDIS_CPU_LIMIT|g" k3s/redis-deployment.yaml
       sed -i "s|\${REDIS_STORAGE_SIZE:-5Gi}|$REDIS_STORAGE_SIZE|g" k3s/redis-deployment.yaml
+      sed -i "s|\${REDIS_IMAGE_TAG:-redis:7-alpine}|$REDIS_IMAGE_TAG|g" k3s/redis-deployment.yaml
       sed -i "s|\${HEALTH_CHECK_INITIAL_DELAY:-30}|$HEALTH_CHECK_INITIAL_DELAY|g" k3s/redis-deployment.yaml
       sed -i "s|\${HEALTH_CHECK_PERIOD:-10}|$HEALTH_CHECK_PERIOD|g" k3s/redis-deployment.yaml
       sed -i "s|\${HEALTH_CHECK_TIMEOUT:-5}|$HEALTH_CHECK_TIMEOUT|g" k3s/redis-deployment.yaml
