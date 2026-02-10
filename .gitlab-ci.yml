@@ -141,6 +141,10 @@ deploy:production:
       # Подстановка реплик и размера хранилища для Postgres (убираем плейсхолдеры из манифеста)
       sed -i "s|\${POSTGRES_REPLICAS:-1}|$POSTGRES_REPLICAS|g" k3s/postgres-statefulset.yaml
       sed -i "s|\${POSTGRES_STORAGE_SIZE:-20Gi}|$POSTGRES_STORAGE_SIZE|g" k3s/postgres-statefulset.yaml
+      sed -i "s|\${POSTGRES_MEMORY_REQUEST:-128Mi}|$POSTGRES_MEMORY_REQUEST|g" k3s/postgres-statefulset.yaml
+      sed -i "s|\${POSTGRES_CPU_REQUEST:-40m}|$POSTGRES_CPU_REQUEST|g" k3s/postgres-statefulset.yaml
+      sed -i "s|\${POSTGRES_MEMORY_LIMIT:-256Mi}|$POSTGRES_MEMORY_LIMIT|g" k3s/postgres-statefulset.yaml
+      sed -i "s|\${POSTGRES_CPU_LIMIT:-60m}|$POSTGRES_CPU_LIMIT|g" k3s/postgres-statefulset.yaml
     - echo "=== DEPLOY: Шаг 3/3 — создание ConfigMap и Secret ==="
     - ci/gitlab/create-configmap-and-secret.sh
     - echo "=== DEPLOY: Финальный шаг — применение Kubernetes манифестов ==="
