@@ -107,7 +107,7 @@ async def register_user(
 )
 @rate_limit(f"{settings.RATE_LIMIT_AUTH_PER_MINUTE}/minute")
 async def login_user(
-    request: Request,  # noqa: ARG001
+    request: Request,  # noqa: ARG001 1
     response: Response,
     db: DBDep,
     auth_service: AuthServiceDep,
