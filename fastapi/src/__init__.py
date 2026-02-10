@@ -18,7 +18,7 @@ def get_redis_manager():
     return get_redis_manager._instance
 
 
-# Экспортируем redis_manager как свойство для обратной совместимости
+# Экспортируем redis_manager как свойство для обратной совместимости1
 # При первом обращении будет создан экземпляр
 class _RedisManagerProxy:
     """Прокси для ленивой инициализации RedisManager."""
