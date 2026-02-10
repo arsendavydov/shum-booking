@@ -158,6 +158,10 @@ jobs:
           # Подстановка размера PVC с изображениями
           sed -i "s|\${IMAGES_STORAGE_SIZE:-5Gi}|$IMAGES_STORAGE_SIZE|g" k3s/pvc.yaml
 
+          # Подстановка домена и email в cert-manager и Ingress
+          sed -i "s|\${LETSENCRYPT_EMAIL:-arsen.davydov@gmail.com}|$LETSENCRYPT_EMAIL|g" k3s/cert-manager-issuer.yaml
+          sed -i "s|\${DOMAIN:-async-black.ru}|$DOMAIN|g" k3s/ingress.yaml
+
           echo "=== DEPLOY (GitHub): создание ConfigMap и Secret через общий скрипт ==="
           ci/gitlab/create-configmap-and-secret.sh
 
