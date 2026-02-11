@@ -121,7 +121,7 @@ class AuthService:
         Returns:
             Словарь с данными из токена или None, если токен невалиден/истек
         """
-        if not token or not isinstance(token, str):
+        if not token:
             return None
 
         # Проверяем базовую структуру JWT токена (должен состоять из 3 частей, разделенных точками)
