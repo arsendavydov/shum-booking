@@ -84,7 +84,7 @@ PostgreSQL
 
 ### Требования
 
-- **Python 3.11** (обязательно, проект использует фичи Python 3.11)
+- **Python 3.11**
 - **PostgreSQL 16** (локально или в Docker)
 - **Redis 7** (локально или в Docker)
 - **Poetry** или **pip** для управления зависимостями
@@ -92,31 +92,21 @@ PostgreSQL
 ### 1. Установка зависимостей
 
 ```bash
-cd fastapi
-
-# Создать виртуальное окружение
-python3.11 -m venv venv
-source venv/bin/activate  # Linux/Mac
-# или
-venv\Scripts\activate  # Windows
-
-# Установить зависимости
-pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
 ### 2. Настройка окружения
 
-Создай файл `.env` в корне проекта (на один уровень выше `fastapi/`):
+Создай файл `.env` в корне проекта:
 
 ```bash
-# Из корня проекта
+
 cp .local.env.template .local.env
 ```
 
 Минимально необходимые переменные:
 - `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD`
-- `JWT_SECRET_KEY` (любой достаточно длинный hex/строка)
+- `JWT_SECRET_KEY` 
 - `REDIS_HOST`, `REDIS_PORT`, `REDIS_DB`
 - `RATE_LIMIT_ENABLED`, `RATE_LIMIT_PER_MINUTE`, `RATE_LIMIT_AUTH_PER_MINUTE`
 
@@ -126,9 +116,6 @@ cp .local.env.template .local.env
 
 ```bash
 cd fastapi
-
-# Активировать виртуальное окружение
-source venv/bin/activate
 
 # Применить миграции (если БД пустая)
 alembic upgrade head
@@ -157,17 +144,12 @@ python src/main.py
 #### Unit-тесты (без зависимостей от БД)
 
 ```bash
-cd fastapi
 pytest tests/unit_tests/ -v
 ```
 
 #### API-тесты (требуют запущенное приложение)
 
 ```bash
-# Запустить приложение в одном терминале
-python -m uvicorn src.main:app --reload
-
-# В другом терминале запустить тесты
 pytest tests/api_tests/ -v
 ```
 

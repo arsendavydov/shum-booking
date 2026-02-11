@@ -32,7 +32,7 @@ class TestHotelSearchFlow:
         countries = countries_response.json()
         assert len(countries) > 0, "Должна быть хотя бы одна страна"
         country_id = countries[0]["id"]
-        country_name = countries[0]["title"]
+        country_name = countries[0]["name"]  # Используем 'name', а не 'title'
         print(f"✅ Найдено стран: {len(countries)}, выбрана: {country_name} (ID={country_id})")
 
         # 2. Получение деталей страны
@@ -54,7 +54,7 @@ class TestHotelSearchFlow:
         cities = cities_response.json()
         assert len(cities) > 0, f"Должен быть хотя бы один город в стране {country_id}"
         city_id = cities[0]["id"]
-        city_name = cities[0]["title"]
+        city_name = cities[0]["name"]  # Используем 'name', а не 'title'
         print(f"✅ Найдено городов: {len(cities)}, выбран: {city_name} (ID={city_id})")
 
         # 4. Получение деталей города

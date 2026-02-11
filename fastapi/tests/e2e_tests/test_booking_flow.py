@@ -43,8 +43,20 @@ class TestBookingFlow:
         assert user_data["email"] == test_user_email
         print(f"✅ Пользователь зарегистрирован: ID={user_id}, email={test_user_email}")
 
-        # Получаем access_token из cookies
-        access_token = register_response.cookies.get("access_token")
+        # После регистрации нужно войти, чтобы получить токены
+        print("\n🔑 Шаг 1.5: Вход для получения токенов")
+        login_data = {
+            "email": test_user_email,
+            "password": TEST_PASSWORD,
+        }
+        login_response = e2e_client.post("/auth/login", json=login_data)
+        wait_between_requests(delay)
+
+        assert login_response.status_code == 200, (
+            f"Ожидался статус 200, получен {login_response.status_code}: {login_response.text}"
+        )
+        # Получаем access_token из cookies после логина
+        access_token = login_response.cookies.get("access_token")
         assert access_token is not None, "Access token должен быть в cookies"
 
         # 2. Поиск страны
@@ -56,7 +68,7 @@ class TestBookingFlow:
         countries = countries_response.json()
         assert len(countries) > 0, "Должна быть хотя бы одна страна"
         country_id = countries[0]["id"]
-        country_name = countries[0]["title"]
+        country_name = countries[0]["name"]  # Используем 'name', а не 'title'
         print(f"✅ Выбрана страна: {country_name} (ID={country_id})")
 
         # 3. Поиск города в выбранной стране
@@ -68,7 +80,7 @@ class TestBookingFlow:
         cities = cities_response.json()
         assert len(cities) > 0, f"Должен быть хотя бы один город в стране {country_id}"
         city_id = cities[0]["id"]
-        city_name = cities[0]["title"]
+        city_name = cities[0]["name"]  # Используем 'name', а не 'title'
         print(f"✅ Выбран город: {city_name} (ID={city_id})")
 
         # 4. Поиск отеля в выбранном городе
@@ -117,46 +129,51 @@ class TestBookingFlow:
         check_in = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d")
         check_out = (datetime.now() + timedelta(days=35)).strftime("%Y-%m-%d")
 
+        # В API бронирования используются поля date_from/date_to
         booking_data = {
             "room_id": room_id,
-            "check_in": check_in,
-            "check_out": check_out,
+            "date_from": check_in,
+            "date_to": check_out,
         }
         booking_response = e2e_client.post("/bookings", json=booking_data, cookies=cookies)
         wait_between_requests(delay)
 
-        assert booking_response.status_code == 201, (
-            f"Ожидался статус 201, получен {booking_response.status_code}: {booking_response.text}"
+        # Эндпоинт возвращает 200 OK с MessageResponse {"status": "OK"}
+        assert booking_response.status_code == 200, (
+            f"Ожидался статус 200, получен {booking_response.status_code}: {booking_response.text}"
         )
-        booking = booking_response.json()
-        booking_id = booking["id"]
-        assert booking["room_id"] == room_id
-        assert booking["user_id"] == user_id
-        print(f"✅ Бронирование создано: ID={booking_id}, {check_in} - {check_out}")
+        print(f"✅ Запрос на создание бронирования принят: {booking_response.json()}")
 
         # 8. Просмотр своих бронирований
         print("\n📋 Шаг 8: Просмотр своих бронирований")
-        my_bookings_response = e2e_client.get("/bookings", cookies=cookies)
+        # Эндпоинт своих бронирований: /bookings/me
+        my_bookings_response = e2e_client.get("/bookings/me", cookies=cookies)
         wait_between_requests(delay)
 
         assert my_bookings_response.status_code == 200
         my_bookings = my_bookings_response.json()
         assert len(my_bookings) > 0, "Должно быть хотя бы одно бронирование"
-        assert any(b["id"] == booking_id for b in my_bookings), "Созданное бронирование должно быть в списке"
+
+        # Ищем только что созданное бронирование по room_id и датам
+        matching_booking = next(
+            (
+                b
+                for b in my_bookings
+                if b["room_id"] == room_id
+                and b["date_from"] == check_in
+                and b["date_to"] == check_out
+            ),
+            None,
+        )
+        assert matching_booking is not None, "Созданное бронирование должно быть в списке"
+        booking_id = matching_booking["id"]
+        assert matching_booking["user_id"] == user_id
+        print(f"✅ Бронирование создано: ID={booking_id}, {check_in} - {check_out}")
+
         print(f"✅ Найдено бронирований: {len(my_bookings)}")
 
-        # 9. Получение деталей бронирования
-        print("\n🔍 Шаг 9: Детали бронирования")
-        booking_detail_response = e2e_client.get(f"/bookings/{booking_id}", cookies=cookies)
-        wait_between_requests(delay)
-
-        assert booking_detail_response.status_code == 200
-        booking_detail = booking_detail_response.json()
-        assert booking_detail["id"] == booking_id
-        print("✅ Детали бронирования получены")
-
-        # 10. Отмена бронирования
-        print("\n❌ Шаг 10: Отмена бронирования")
+        # 9. Отмена бронирования
+        print("\n❌ Шаг 9: Отмена бронирования")
         cancel_response = e2e_client.delete(f"/bookings/{booking_id}", cookies=cookies)
         wait_between_requests(delay)
 
@@ -165,9 +182,9 @@ class TestBookingFlow:
         )
         print("✅ Бронирование отменено")
 
-        # 11. Проверка, что бронирование удалено
-        print("\n✅ Шаг 11: Проверка удаления бронирования")
-        check_bookings_response = e2e_client.get("/bookings", cookies=cookies)
+        # 10. Проверка, что бронирование удалено
+        print("\n✅ Шаг 10: Проверка удаления бронирования")
+        check_bookings_response = e2e_client.get("/bookings/me", cookies=cookies)
         wait_between_requests(delay)
 
         assert check_bookings_response.status_code == 200

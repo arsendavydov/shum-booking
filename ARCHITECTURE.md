@@ -1,214 +1,213 @@
 # Архитектура проекта: Поток данных от API до БД
-
 **Дата обновления:** 10 февраля 2026
 
 ## Общая схема потока данных
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                         HTTP REQUEST (FastAPI)                           │
-│                    GET /hotels/{hotel_id}/rooms/{room_id}                │
+│                         HTTP REQUEST (FastAPI)                          │
+│                    GET /hotels/{hotel_id}/rooms/{room_id}               │
 └─────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                    HTTPLoggingMiddleware                                  │
-│                    Логирование всех HTTP запросов                         │
-│                    Формат: client_host - "method path protocol" status   │
+│                    HTTPLoggingMiddleware                                │
+│                    Логирование всех HTTP запросов                       │
+│                    Формат: client_host - "method path protocol" status  │
 └─────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                    Global Exception Handlers                             │
-│                    - DatabaseError → database_exception_handler          │
-│                    - Exception → general_exception_handler                │
+│                    Global Exception Handlers                            │
+│                    - DatabaseError → database_exception_handler         │
+│                    - Exception → general_exception_handler              │
 └─────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         API Layer (api/rooms.py)                         │
+┌───────────────────────────────────────────────────────────────────────────┐
+│                         API Layer (api/rooms.py)                          │
 │                                                                           │
-│  @router.get("/{room_id}")                                               │
-│  async def get_room_by_id(                                               │
-│      hotel_id: int,                                                      │
-│      room_id: int,                                                       │
-│      db: DBDep                                                           │
-│  ) -> SchemaRoom:                                                        │
-│      repo = DBManager.get_rooms_repository(db)                          │
-│      room = await get_or_404(repo.get_by_id, room_id, "Номер")          │
-│      return room  # Возвращает SchemaRoom                                │
-└─────────────────────────────────────────────────────────────────────────┘
+│  @router.get("/{room_id}")                                                │
+│  async def get_room_by_id(                                                │
+│      hotel_id: int,                                                       │
+│      room_id: int,                                                        │
+│      db: DBDep                                                            │
+│  ) -> SchemaRoom:                                                         │
+│      repo = DBManager.get_rooms_repository(db)                            │
+│      room = await get_or_404(repo.get_by_id, room_id, "Номер")            │
+│      return room  # Возвращает SchemaRoom                                 │
+└───────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    Pydantic Schemas (schemas/rooms.py)                   │
+┌───────────────────────────────────────────────────────────────────────────┐
+│                    Pydantic Schemas (schemas/rooms.py)                    │
 │                                                                           │
-│  class SchemaRoom(BaseModel):                                            │
-│      id: int                                                             │
-│      hotel_id: int                                                       │
-│      title: str                                                          │
-│      price: int                                                          │
+│  class SchemaRoom(BaseModel):                                             │
+│      id: int                                                              │
+│      hotel_id: int                                                        │
+│      title: str                                                           │
+│      price: int                                                           │
 │      quantity: int                                                        │
-│      facilities: List[SchemaFacility]                                    │
-│      model_config = ConfigDict(from_attributes=True)                    │
+│      facilities: List[SchemaFacility]                                     │
+│      model_config = ConfigDict(from_attributes=True)                      │
 │                                                                           │
-│  ⚠️ Схемы НЕ используются напрямую с ORM - только через Data Mapper    │
-└─────────────────────────────────────────────────────────────────────────┘
+│  ⚠️ Схемы НЕ используются напрямую с ORM - только через Data Mapper       │
+└───────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│              Repository Layer (repositories/rooms.py)                    │
-│                    ⭐ DATA MAPPER PATTERN ⭐                             │
-│                                                                           │
-│  class RoomsRepository(BaseRepository[RoomsOrm]):                       │
-│                                                                           │
-│      def _to_schema(self, orm_obj: RoomsOrm) -> SchemaRoom:             │
-│          """Преобразование ORM → Pydantic через Data Mapper"""          │
-│          facilities = self._facilities_to_schema(orm_obj.facilities)    │
-│          return SchemaRoom(                                              │
-│              id=orm_obj.id,                                              │
-│              hotel_id=orm_obj.hotel_id,                                  │
-│              title=orm_obj.title,                                         │
-│              price=orm_obj.price,                                         │
-│              quantity=orm_obj.quantity,                                   │
-│              facilities=facilities                                        │
-│          )                                                                │
-│                                                                           │
-│      async def get_by_id(self, id: int) -> Optional[SchemaRoom]:      │
-│          query = select(self.model).where(...)                           │
-│          result = await self.session.execute(query)                      │
-│          orm_obj = result.scalar_one_or_none()                          │
-│          return self._to_schema(orm_obj)  # ORM → Schema                 │
-└─────────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────┐
+│              Repository Layer (repositories/rooms.py)                      │
+│                    ⭐ DATA MAPPER PATTERN ⭐                               │
+│                                                                            │
+│  class RoomsRepository(BaseRepository[RoomsOrm]):                          │
+│                                                                            │
+│      def _to_schema(self, orm_obj: RoomsOrm) -> SchemaRoom:                │
+│          """Преобразование ORM → Pydantic через Data Mapper"""             │
+│          facilities = self._facilities_to_schema(orm_obj.facilities)       │
+│          return SchemaRoom(                                                │
+│              id=orm_obj.id,                                                │
+│              hotel_id=orm_obj.hotel_id,                                    │
+│              title=orm_obj.title,                                          │
+│              price=orm_obj.price,                                          │
+│              quantity=orm_obj.quantity,                                    │
+│              facilities=facilities                                         │
+│          )                                                                 │
+│                                                                            │
+│      async def get_by_id(self, id: int) -> Optional[SchemaRoom]:           │
+│          query = select(self.model).where(...)                             │
+│          result = await self.session.execute(query)                        │
+│          orm_obj = result.scalar_one_or_none()                             │
+│          return self._to_schema(orm_obj)  # ORM → Schema                   │
+└────────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│              ORM Models (models/rooms.py)                                │
-│                    SQLAlchemy ORM                                        │
-│                                                                           │
-│  class RoomsOrm(Base):                                                    │
-│      __tablename__ = "rooms"                                              │
-│                                                                           │
-│      id: Mapped[int]                                                      │
-│      hotel_id: Mapped[int]                                               │
-│      title: Mapped[str]                                                  │
-│      price: Mapped[int]                                                   │
-│      quantity: Mapped[int]                                                 │
-│                                                                           │
-│      facilities: Mapped[list["FacilitiesOrm"]] = relationship(            │
-│          "FacilitiesOrm",                                                 │
-│          secondary="rooms_facilities",                                     │
-│          back_populates="rooms"                                           │
-│      )                                                                    │
-└─────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│              ORM Models (models/rooms.py)                                   │
+│                    SQLAlchemy ORM                                           │
+│                                                                             │
+│  class RoomsOrm(Base):                                                      │
+│      __tablename__ = "rooms"                                                │
+│                                                                             │
+│      id: Mapped[int]                                                        │
+│      hotel_id: Mapped[int]                                                  │
+│      title: Mapped[str]                                                     │
+│      price: Mapped[int]                                                     │
+│      quantity: Mapped[int]                                                  │
+│                                                                             │
+│      facilities: Mapped[list["FacilitiesOrm"]] = relationship(              │
+│          "FacilitiesOrm",                                                   │
+│          secondary="rooms_facilities",                                      │
+│          back_populates="rooms"                                             │
+│      )                                                                      │
+└─────────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                      Database (PostgreSQL)                               │
+┌───────────────────────────────────────────────────────────────────────────┐
+│                      Database (PostgreSQL)                                │
 │                                                                           │
-│  ┌──────────────┐                                                        │
-│  │  countries   │                                                        │
-│  ├──────────────┤                                                        │
-│  │ id (PK)      │                                                        │
-│  │ name (UNIQUE)│                                                        │
-│  │ iso_code     │                                                        │
-│  └──────────────┘                                                        │
+│  ┌──────────────┐                                                         │
+│  │  countries   │                                                         │
+│  ├──────────────┤                                                         │
+│  │ id (PK)      │                                                         │
+│  │ name (UNIQUE)│                                                         │
+│  │ iso_code     │                                                         │
+│  └──────────────┘                                                         │
 │       │                                                                   │
 │       │ 1:N (CASCADE)                                                     │
 │       ▼                                                                   │
-│  ┌──────────────┐                                                        │
-│  │   cities     │                                                        │
-│  ├──────────────┤                                                        │
-│  │ id (PK)      │                                                        │
-│  │ name         │                                                        │
+│  ┌──────────────┐                                                         │
+│  │   cities     │                                                         │
+│  ├──────────────┤                                                         │
+│  │ id (PK)      │                                                         │
+│  │ name         │                                                         │
 │  │ country_id   │◄─── FK                                                  │
-│  └──────────────┘                                                        │
+│  └──────────────┘                                                         │
 │       │                                                                   │
 │       │ 1:N (CASCADE)                                                     │
 │       ▼                                                                   │
-│  ┌──────────────┐         ┌──────────────────┐                          │
-│  │   hotels     │         │  hotels_images    │                          │
-│  ├──────────────┤         ├──────────────────┤                          │
-│  │ id (PK)      │◄────────│ hotel_id (FK, PK) │                          │
-│  │ title (UNIQ) │         │ image_id (FK, PK) │                          │
-│  │ city_id (FK) │         └──────────────────┘                          │
-│  │ address      │                  │                                    │
-│  │ postal_code  │                  │                                    │
-│  │ check_in_time│                  │                                    │
-│  │ check_out_...│                  │                                    │
-│  └──────────────┘                  │                                    │
-│       │                             │                                    │
-│       │ 1:N                         │                                    │
-│       ▼                             │                                    │
-│  ┌──────────────┐                   │                                    │
-│  │   rooms      │                   │                                    │
-│  ├──────────────┤                   │                                    │
-│  │ id (PK)      │                   │                                    │
-│  │ hotel_id (FK)│                   │                                    │
-│  │ title        │                   │                                    │
-│  │ description  │                   │                                    │
-│  │ price        │                   │                                    │
-│  │ quantity     │                   │                                    │
-│  └──────────────┘                   │                                    │
-│       │                             │                                    │
-│       │ 1:N                         │                                    │
-│       │                             │                                    │
-│       │                             │                                    │
-│       │                             ▼                                    │
-│       │                    ┌──────────────┐                              │
-│       │                    │   images     │                              │
-│       │                    ├──────────────┤                              │
-│       │                    │ id (PK)      │                              │
-│       │                    │ filename     │                              │
-│       │                    │ original_... │                              │
-│       │                    │ width        │                              │
-│       │                    │ height       │                              │
-│       │                    └──────────────┘                              │
+│  ┌──────────────┐         ┌──────────────────┐                            │
+│  │   hotels     │         │  hotels_images    │                           │
+│  ├──────────────┤         ├──────────────────┤                            │
+│  │ id (PK)      │◄────────│ hotel_id (FK, PK) │                           │
+│  │ title (UNIQ) │         │ image_id (FK, PK) │                           │
+│  │ city_id (FK) │         └──────────────────┘                            │
+│  │ address      │                  │                                      │
+│  │ postal_code  │                  │                                      │
+│  │ check_in_time│                  │                                      │
+│  │ check_out_...│                  │                                      │
+│  └──────────────┘                  │                                      │
+│       │                             │                                     │
+│       │ 1:N                         │                                     │
+│       ▼                             │                                     │
+│  ┌──────────────┐                   │                                     │
+│  │   rooms      │                   │                                     │
+│  ├──────────────┤                   │                                     │
+│  │ id (PK)      │                   │                                     │
+│  │ hotel_id (FK)│                   │                                     │
+│  │ title        │                   │                                     │
+│  │ description  │                   │                                     │
+│  │ price        │                   │                                     │
+│  │ quantity     │                   │                                     │
+│  └──────────────┘                   │                                     │
+│       │                             │                                     │
+│       │ 1:N                         │                                     │
+│       │                             │                                     │
+│       │                             │                                     │
+│       │                             ▼                                     │
+│       │                    ┌──────────────┐                               │
+│       │                    │   images     │                               │
+│       │                    ├──────────────┤                               │
+│       │                    │ id (PK)      │                               │
+│       │                    │ filename     │                               │
+│       │                    │ original_... │                               │
+│       │                    │ width        │                               │
+│       │                    │ height       │                               │
+│       │                    └──────────────┘                               │
 │       │                                                                   │
 │       │ N:M (CASCADE)                                                     │
 │       ▼                                                                   │
-│  ┌──────────────────┐                                                    │
+│  ┌──────────────────┐                                                     │
 │  │ rooms_facilities  │                                                    │
-│  ├──────────────────┤                                                    │
+│  ├──────────────────┤                                                     │
 │  │ room_id (FK, PK)  │                                                    │
 │  │ facility_id (FK)  │                                                    │
-│  └──────────────────┘                                                    │
+│  └──────────────────┘                                                     │
 │       │                                                                   │
 │       │                                                                   │
 │       ▼                                                                   │
-│  ┌──────────────┐                                                        │
-│  │  facilities  │                                                        │
-│  ├──────────────┤                                                        │
-│  │ id (PK)      │                                                        │
-│  │ title        │                                                        │
-│  └──────────────┘                                                        │
+│  ┌──────────────┐                                                         │
+│  │  facilities  │                                                         │
+│  ├──────────────┤                                                         │
+│  │ id (PK)      │                                                         │
+│  │ title        │                                                         │
+│  └──────────────┘                                                         │
 │                                                                           │
-│  ┌──────────────┐                                                        │
-│  │   users      │                                                        │
-│  ├──────────────┤                                                        │
-│  │ id (PK)      │                                                        │
-│  │ email (UNIQ) │                                                        │
-│  │ hashed_pass  │                                                        │
-│  │ first_name   │                                                        │
-│  │ last_name    │                                                        │
-│  │ telegram_id  │                                                        │
-│  │ pachca_id    │                                                        │
-│  └──────────────┘                                                        │
+│  ┌──────────────┐                                                         │
+│  │   users      │                                                         │
+│  ├──────────────┤                                                         │
+│  │ id (PK)      │                                                         │
+│  │ email (UNIQ) │                                                         │
+│  │ hashed_pass  │                                                         │
+│  │ first_name   │                                                         │
+│  │ last_name    │                                                         │
+│  │ telegram_id  │                                                         │
+│  │ pachca_id    │                                                         │
+│  └──────────────┘                                                         │
 │       │                                                                   │
 │       │ 1:N                                                               │
 │       ▼                                                                   │
-│  ┌──────────────┐                                                        │
-│  │  bookings    │                                                        │
-│  ├──────────────┤                                                        │
-│  │ id (PK)      │                                                        │
-│  │ room_id (FK) │                                                        │
-│  │ user_id (FK) │                                                        │
-│  │ date_from    │                                                        │
-│  │ date_to      │                                                        │
-│  │ price        │                                                        │
-│  │ created_at   │                                                        │
-│  └──────────────┘                                                        │
-└─────────────────────────────────────────────────────────────────────────┘
+│  ┌──────────────┐                                                         │
+│  │  bookings    │                                                         │
+│  ├──────────────┤                                                         │
+│  │ id (PK)      │                                                         │
+│  │ room_id (FK) │                                                         │
+│  │ user_id (FK) │                                                         │
+│  │ date_from    │                                                         │
+│  │ date_to      │                                                         │
+│  │ price        │                                                         │
+│  │ created_at   │                                                         │
+│  └──────────────┘                                                         │
+└───────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Детальная схема для разных операций
@@ -317,84 +316,84 @@ Body: {"title": "Новое название", "facility_ids": [2, 3]}
 ### 1. Разделение слоев (Layered Architecture)
 
 ```
-┌─────────────────────────────────────────┐
-│  Presentation Layer (API)               │  ← FastAPI endpoints
-│  - Валидация HTTP запросов              │
-│  - Обработка ошибок                     │
-│  - Возврат JSON ответов                 │
-└─────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────┐
+│  Presentation Layer (API)                                     │
+│  - Валидация HTTP запросов                                    │
+│  - Обработка ошибок                                           │
+│  - Возврат JSON ответов                                       │
+└───────────────────────────────────────────────────────────────┘
               │
               ▼
-┌─────────────────────────────────────────┐
-│  Application Layer (Schemas)            │  ← Pydantic models
-│  - Валидация входных данных             │
-│  - Структура ответов                    │
-│  - Бизнес-логика валидации              │
-└─────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│  Application Layer (Schemas)                                │
+│  - Валидация входных данных                                 │
+│  - Структура ответов                                        │
+│  - Бизнес-логика валидации                                  │
+└─────────────────────────────────────────────────────────────┘
               │
               ▼
-┌─────────────────────────────────────────┐
-│  Domain Layer (Repositories)            │  ← Data Mapper
-│  - Преобразование ORM → Schema          │
-│  - Бизнес-логика работы с данными       │
-│  - Абстракция доступа к данным          │
-└─────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│  Domain Layer (Repositories)                            │
+│  - Преобразование ORM → Schema                          │
+│  - Бизнес-логика работы с данными                       │
+│  - Абстракция доступа к данным                          │
+└─────────────────────────────────────────────────────────┘
               │
               ▼
-┌─────────────────────────────────────────┐
-│  Data Access Layer (ORM Models)          │  ← SQLAlchemy
-│  - Маппинг таблиц БД на классы          │
-│  - SQL запросы                          │
-│  - Управление связями                   │
-└─────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────┐
+│  Data Access Layer (ORM Models)                        │
+│  - Маппинг таблиц БД на классы                         │
+│  - SQL запросы                                         │
+│  - Управление связями                                  │
+└────────────────────────────────────────────────────────┘
               │
               ▼
-┌─────────────────────────────────────────┐
-│  Database Layer (PostgreSQL)            │  ← База данных
-│  - Хранение данных                      │
-│  - Транзакции                           │
-│  - Индексы и ограничения                │
-└─────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│  Database Layer (PostgreSQL)                            │
+│  - Хранение данных                                      │
+│  - Транзакции                                           │
+│  - Индексы и ограничения                                │
+└─────────────────────────────────────────────────────────┘
 ```
 
 ### 2. Data Mapper Pattern
 
 ```
-┌─────────────────────────────────────────────────────────────┐
+┌──────────────────────────────────────────────────────────────┐
 │  ORM Object (RoomsOrm)                                       │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ id: 5                                                │   │
-│  │ title: "Стандартный номер"                          │   │
-│  │ price: 2000                                         │   │
-│  │ facilities: [FacilitiesOrm(id=1), FacilitiesOrm(..)]│   │
-│  └─────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
+│  ┌─────────────────────────────────────────────────────┐     │
+│  │ id: 5                                               │     │
+│  │ title: "Стандартный номер"                          │     │
+│  │ price: 2000                                         │     │
+│  │ facilities: [FacilitiesOrm(id=1), FacilitiesOrm(..)]│     │
+│  └─────────────────────────────────────────────────────┘     │
+└──────────────────────────────────────────────────────────────┘
                             │
                             │ _to_schema()
                             ▼
-┌─────────────────────────────────────────────────────────────┐
+┌──────────────────────────────────────────────────────────────┐
 │  Pydantic Schema (SchemaRoom)                                │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ id: 5                                                │   │
-│  │ title: "Стандартный номер"                          │   │
-│  │ price: 2000                                         │   │
-│  │ facilities: [SchemaFacility(id=1, title="Wi-Fi"), ..]│   │
-│  └─────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
+│  ┌─────────────────────────────────────────────────────┐     │
+│  │ id: 5                                               │     │
+│  │ title: "Стандартный номер"                          │     │
+│  │ price: 2000                                         │     │
+│  │ facilities: [SchemaFacility(id=1, title="Wi-Fi"), ..]│    │
+│  └─────────────────────────────────────────────────────┘     │
+└──────────────────────────────────────────────────────────────┘
                             │
                             │ JSON serialization
                             ▼
-┌─────────────────────────────────────────────────────────────┐
+┌──────────────────────────────────────────────────────────────┐
 │  HTTP Response (JSON)                                        │
 │  {                                                           │
 │    "id": 5,                                                  │
 │    "title": "Стандартный номер",                             │
 │    "price": 2000,                                            │
 │    "facilities": [                                           │
-│      {"id": 1, "title": "Wi-Fi"}                            │
+│      {"id": 1, "title": "Wi-Fi"}                             │
 │    ]                                                         │
 │  }                                                           │
-└─────────────────────────────────────────────────────────────┘
+└──────────────────────────────────────────────────────────────┘
 ```
 
 ### 3. Преимущества Data Mapper
@@ -570,20 +569,20 @@ Schemas (schemas/)
 ### HTTP Logging Middleware
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    HTTPLoggingMiddleware                                 │
+┌───────────────────────────────────────────────────────────────────────────┐
+│                    HTTPLoggingMiddleware                                  │
 │                                                                           │
-│  Логирует все HTTP запросы в формате:                                    │
-│  client_host - "method path?query protocol" status_code                 │
+│  Логирует все HTTP запросы в формате:                                     │
+│  client_host - "method path?query protocol" status_code                   │
 │                                                                           │
 │  Пример:                                                                  │
-│  127.0.0.1 - "GET /hotels/1/rooms?page=1 HTTP/1.1" 200                  │
+│  127.0.0.1 - "GET /hotels/1/rooms?page=1 HTTP/1.1" 200                    │
 │                                                                           │
 │  Особенности:                                                             │
-│  - Работает только для основного приложения (не для тестов)              │
-│  - Логирует в root logger                                               │
-│  - Измеряет время обработки запроса (для будущих метрик)                │
-└─────────────────────────────────────────────────────────────────────────┘
+│  - Работает только для основного приложения (не для тестов)               │
+│  - Логирует в root logger                                                 │
+│  - Измеряет время обработки запроса (для будущих метрик)                  │
+└───────────────────────────────────────────────────────────────────────────┘
 ```
 
 **Реализация:** `src/middleware/http_logging.py`
@@ -591,19 +590,19 @@ Schemas (schemas/)
 ### Глобальные обработчики исключений
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    Exception Handling Layer                              │
+┌───────────────────────────────────────────────────────────────────────────┐
+│                    Exception Handling Layer                               │
 │                                                                           │
-│  1. database_exception_handler (DatabaseError)                           │
-│     ├─ IntegrityError → 409 CONFLICT                                     │
-│     ├─ OperationalError → 503 SERVICE_UNAVAILABLE                      │
-│     └─ Другие DatabaseError → 500 INTERNAL_SERVER_ERROR                  │
+│  1. database_exception_handler (DatabaseError)                            │
+│     ├─ IntegrityError → 409 CONFLICT                                      │
+│     ├─ OperationalError → 503 SERVICE_UNAVAILABLE                         │
+│     └─ Другие DatabaseError → 500 INTERNAL_SERVER_ERROR                   │
 │                                                                           │
-│  2. general_exception_handler (Exception)                                │
-│     └─ Все необработанные исключения → 500 INTERNAL_SERVER_ERROR         │
+│  2. general_exception_handler (Exception)                                 │
+│     └─ Все необработанные исключения → 500 INTERNAL_SERVER_ERROR          │
 │                                                                           │
 │  Все исключения логируются с полным traceback через logger.error()        │
-└─────────────────────────────────────────────────────────────────────────┘
+└───────────────────────────────────────────────────────────────────────────┘
 ```
 
 **Реализация:** `src/middleware/exception_handler.py`
@@ -619,24 +618,24 @@ app.add_exception_handler(Exception, general_exception_handler)
 ### Архитектура логирования
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    Logging System                                         │
-│                                                                           │
-│  setup_logging()                                                          │
-│    ├─ RotatingFileHandler (logs/app.log)                                 │
-│    │  - Максимум 10 МБ на файл                                            │
-│    │  - 5 резервных копий                                                 │
-│    │  - Кодировка UTF-8                                                   │
+┌────────────────────────────────────────────────────────────────────────────┐
+│                    Logging System                                          │
+│                                                                            │
+│  setup_logging()                                                           │
+│    ├─ RotatingFileHandler (logs/app.log)                                   │
+│    │  - Максимум 10 МБ на файл                                             │
+│    │  - 5 резервных копий                                                  │
+│    │  - Кодировка UTF-8                                                    │
 │    │                                                                       │
-│    └─ StreamHandler (stdout)                                             │
-│       - Вывод в консоль                                                   │
-│                                                                           │
-│  Формат: [YYYY-MM-DD HH:MM:SS] [LEVEL] [name] message                    │
-│                                                                           │
-│  Настройка уровней:                                                       │
-│  - uvicorn, fastapi, celery, alembic → пропагируют в root logger          │
-│  - sqlalchemy.engine → только WARNING и выше, не пропагирует             │
-└─────────────────────────────────────────────────────────────────────────┘
+│    └─ StreamHandler (stdout)                                               │
+│       - Вывод в консоль                                                    │
+│                                                                            │
+│  Формат: [YYYY-MM-DD HH:MM:SS] [LEVEL] [name] message                      │
+│                                                                            │
+│  Настройка уровней:                                                        │
+│  - uvicorn, fastapi, celery, alembic → пропагируют в root logger           │
+│  - sqlalchemy.engine → только WARNING и выше, не пропагирует               │
+└────────────────────────────────────────────────────────────────────────────┘
 ```
 
 **Реализация:** `src/utils/logger.py`
@@ -655,27 +654,27 @@ logger.error("Ошибка", exc_info=True)
 ### Startup Handler
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    startup_handler()                                     │
+┌───────────────────────────────────────────────────────────────────────────┐
+│                    startup_handler()                                      │
 │                                                                           │
-│  1. Настройка тестовой БД (если DB_NAME == "test")                       │
-│  2. Применение миграций Alembic                                          │
-│  3. Проверка подключения к PostgreSQL                                   │
-│  4. Проверка подключения к Redis                                         │
-│  5. Инициализация FastAPI Cache (Redis backend)                          │
-│  6. Очистка старых временных файлов (> 1 часа)                           │
-└─────────────────────────────────────────────────────────────────────────┘
+│  1. Настройка тестовой БД (если DB_NAME == "test")                        │
+│  2. Применение миграций Alembic                                           │
+│  3. Проверка подключения к PostgreSQL                                     │
+│  4. Проверка подключения к Redis                                          │
+│  5. Инициализация FastAPI Cache (Redis backend)                           │
+│  6. Очистка старых временных файлов (> 1 часа)                            │
+└───────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Shutdown Handler
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    shutdown_handler()                                    │
+┌───────────────────────────────────────────────────────────────────────────┐
+│                    shutdown_handler()                                     │
 │                                                                           │
-│  1. Закрытие соединений с PostgreSQL (SQLAlchemy engine)                 │
-│  2. Закрытие соединений с Redis                                          │
-└─────────────────────────────────────────────────────────────────────────┘
+│  1. Закрытие соединений с PostgreSQL (SQLAlchemy engine)                  │
+│  2. Закрытие соединений с Redis                                           │
+└───────────────────────────────────────────────────────────────────────────┘
 ```
 
 **Реализация:** `src/utils/startup.py`
@@ -685,21 +684,21 @@ logger.error("Ошибка", exc_info=True)
 ### Архитектура кэширования
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    FastAPI Cache (Redis Backend)                         │
+┌───────────────────────────────────────────────────────────────────────────┐
+│                    FastAPI Cache (Redis Backend)                          │
 │                                                                           │
-│  Используется для кэширования:                                           │
-│  - Списки отелей (TTL: 300 секунд)                                       │
-│  - Детали отелей (TTL: 300 секунд)                                       │
+│  Используется для кэширования:                                            │
+│  - Списки отелей (TTL: 300 секунд)                                        │
+│  - Детали отелей (TTL: 300 секунд)                                        │
 │  - Списки номеров (TTL: 300 секунд)                                       │
 │  - Детали номеров (TTL: 300 секунд)                                       │
 │                                                                           │
-│  Декоратор: @cache(expire=300, namespace="hotels")                      │
+│  Декоратор: @cache(expire=300, namespace="hotels")                        │
 │                                                                           │
-│  Инвалидация кэша:                                                       │
-│  - При создании/изменении/удалении отелей → invalidate_cache("hotels")   │
-│  - При создании/изменении/удалении номеров → invalidate_cache("rooms")  │
-└─────────────────────────────────────────────────────────────────────────┘
+│  Инвалидация кэша:                                                        │
+│  - При создании/изменении/удалении отелей → invalidate_cache("hotels")    │
+│  - При создании/изменении/удалении номеров → invalidate_cache("rooms")    │
+└───────────────────────────────────────────────────────────────────────────┘
 ```
 
 **Реализация:**
@@ -712,28 +711,28 @@ logger.error("Ошибка", exc_info=True)
 ### Архитектура аутентификации
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    JWT Authentication Flow                               │
+┌───────────────────────────────────────────────────────────────────────────┐
+│                    JWT Authentication Flow                                │
 │                                                                           │
-│  1. Регистрация (POST /auth/register)                                    │
-│     ├─ Валидация email (уникальность)                                   │
-│     ├─ Хеширование пароля (bcrypt)                                       │
-│     └─ Создание пользователя в БД                                        │
+│  1. Регистрация (POST /auth/register)                                     │
+│     ├─ Валидация email (уникальность)                                     │
+│     ├─ Хеширование пароля (bcrypt)                                        │
+│     └─ Создание пользователя в БД                                         │
 │                                                                           │
-│  2. Вход (POST /auth/login)                                              │
-│     ├─ Проверка email и пароля                                           │
-│     ├─ Создание JWT токена                                               │
+│  2. Вход (POST /auth/login)                                               │
+│     ├─ Проверка email и пароля                                            │
+│     ├─ Создание JWT токена                                                │
 │     └─ Установка токена в HTTP-only cookie                                │
 │                                                                           │
-│  3. Защищенные эндпоинты                                                 │
-│     ├─ Извлечение токена из cookie или Authorization header              │
-│     ├─ Валидация и декодирование JWT                                     │
-│     ├─ Получение пользователя из БД                                      │
-│     └─ Инъекция current_user в эндпоинт                                  │
+│  3. Защищенные эндпоинты                                                  │
+│     ├─ Извлечение токена из cookie или Authorization header               │
+│     ├─ Валидация и декодирование JWT                                      │
+│     ├─ Получение пользователя из БД                                       │
+│     └─ Инъекция current_user в эндпоинт                                   │
 │                                                                           │
-│  4. Выход (POST /auth/logout)                                            │
-│     └─ Удаление токена из cookie                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+│  4. Выход (POST /auth/logout)                                             │
+│     └─ Удаление токена из cookie                                          │
+└───────────────────────────────────────────────────────────────────────────┘
 ```
 
 **Реализация:**
@@ -753,23 +752,23 @@ logger.error("Ошибка", exc_info=True)
 ### Архитектура Celery
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    Celery Task Processing                                │
+┌───────────────────────────────────────────────────────────────────────────┐
+│                    Celery Task Processing                                 │
 │                                                                           │
 │  Задачи:                                                                  │
-│  - process_image: Обработка изображений отелей                          │
-│    ├─ Валидация размера (минимум 1000px по ширине)                      │
-│    ├─ Создание ресайзов: 200px, 500px, 1000px                           │
-│    ├─ Сохранение в static/images/                                        │
-│    └─ Создание записей в БД (ImagesOrm)                                  │
+│  - process_image: Обработка изображений отелей                            │
+│    ├─ Валидация размера (минимум 1000px по ширине)                        │
+│    ├─ Создание ресайзов: 200px, 500px, 1000px                             │
+│    ├─ Сохранение в static/images/                                         │
+│    └─ Создание записей в БД (ImagesOrm)                                   │
 │                                                                           │
 │  Брокер/Backend: Redis                                                    │
 │                                                                           │
 │  Особенности:                                                             │
-│  - Синхронное ожидание результата (timeout=30 сек)                       │
-│  - Обработка ошибок с удалением временных файлов                         │
-│  - Поддержка разных БД (booking/test) через db_name                     │
-└─────────────────────────────────────────────────────────────────────────┘
+│  - Синхронное ожидание результата (timeout=30 сек)                        │
+│  - Обработка ошибок с удалением временных файлов                          │
+│  - Поддержка разных БД (booking/test) через db_name                       │
+└───────────────────────────────────────────────────────────────────────────┘
 ```
 
 **Реализация:**
@@ -787,7 +786,7 @@ fastapi/src/
 │   ├── cities.py                 # Города
 │   ├── countries.py              # Страны
 │   ├── dependencies.py           # FastAPI dependencies (DBDep, CurrentUserDep, etc.)
-│   ├── facilities.py            # Удобства
+│   ├── facilities.py             # Удобства
 │   ├── hotels.py                 # Отели
 │   ├── images.py                 # Изображения отелей
 │   ├── rooms.py                  # Номера
