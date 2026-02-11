@@ -42,16 +42,16 @@ async def register_user(
             "1": {
                 "summary": "Минимальная регистрация",
                 "description": "Регистрация только с email и паролем",
-                "value": {"email": "user@example.com", "password": "securepass123"},
+                "value": {"email": "ivan.petrov@async-black.ru", "password": "TestPassword123!"},
             },
             "2": {
                 "summary": "Полная регистрация",
                 "description": "Регистрация со всеми полями",
                 "value": {
-                    "email": "user@example.com",
-                    "password": "securepass123",
-                    "first_name": "Иван",
-                    "last_name": "Иванов",
+                    "email": "maria.ivanova@async-black.ru",
+                    "password": "TestPassword123!",
+                    "first_name": "Мария",
+                    "last_name": "Иванова",
                     "telegram_id": "123456789",
                     "pachca_id": "pachca_123",
                 },
@@ -117,7 +117,7 @@ async def login_user(
             "1": {
                 "summary": "Вход пользователя",
                 "description": "Вход с email и паролем",
-                "value": {"email": "user@example.com", "password": "securepass123"},
+                "value": {"email": "ivan.petrov@async-black.ru", "password": "TestPassword123!"},
             }
         },
     ),
