@@ -138,7 +138,37 @@ async def get_room_by_id(hotel_id: int, room_id: int, db: DBDep) -> SchemaRoom:
     description="Создает новый номер в указанном отеле. ID генерируется автоматически. Можно сразу указать список ID удобств для добавления к номеру.",
     response_model=MessageResponse,
 )
-async def create_room(hotel_id: int, rooms_service: RoomsServiceDep, room: Room = Body(...)) -> MessageResponse:
+async def create_room(
+    hotel_id: int,
+    rooms_service: RoomsServiceDep,
+    room: Room = Body(
+        ...,
+        openapi_examples={
+            "1": {
+                "summary": "Создать стандартный номер",
+                "description": "Создание стандартного номера с базовыми удобствами",
+                "value": {
+                    "title": "Стандартный номер",
+                    "description": "Уютный стандартный номер с современным дизайном",
+                    "price": 3000,
+                    "quantity": 5,
+                    "facility_ids": [120, 121, 122],
+                },
+            },
+            "2": {
+                "summary": "Создать люкс номер",
+                "description": "Создание люкс номера с полным набором удобств",
+                "value": {
+                    "title": "Люкс",
+                    "description": "Просторный люкс номер с видом на море",
+                    "price": 8000,
+                    "quantity": 2,
+                    "facility_ids": [120, 121, 122, 123, 124, 129, 131],
+                },
+            },
+        },
+    ),
+) -> MessageResponse:
     """
     Создать новый номер в отеле.
 
@@ -174,7 +204,25 @@ async def create_room(hotel_id: int, rooms_service: RoomsServiceDep, room: Room 
     response_model=MessageResponse,
 )
 async def update_room(
-    hotel_id: int, room_id: int, rooms_service: RoomsServiceDep, room: Room = Body(...)
+    hotel_id: int,
+    room_id: int,
+    rooms_service: RoomsServiceDep,
+    room: Room = Body(
+        ...,
+        openapi_examples={
+            "1": {
+                "summary": "Полное обновление номера",
+                "description": "Обновление всех полей номера",
+                "value": {
+                    "title": "Улучшенный номер",
+                    "description": "Обновленное описание номера",
+                    "price": 4500,
+                    "quantity": 4,
+                    "facility_ids": [120, 121, 122, 123],
+                },
+            }
+        },
+    ),
 ) -> MessageResponse:
     """
     Полное обновление номера.
@@ -214,7 +262,20 @@ async def update_room(
     response_model=MessageResponse,
 )
 async def partial_update_room(
-    hotel_id: int, room_id: int, rooms_service: RoomsServiceDep, room: RoomPATCH = Body(...)
+    hotel_id: int,
+    room_id: int,
+    rooms_service: RoomsServiceDep,
+    room: RoomPATCH = Body(
+        ...,
+        openapi_examples={
+            "1": {"summary": "Обновить только цену", "value": {"price": 3500}},
+            "2": {"summary": "Обновить количество", "value": {"quantity": 6}},
+            "3": {
+                "summary": "Обновить несколько полей",
+                "value": {"title": "Премиум номер", "price": 5500, "facility_ids": [120, 121, 122, 123, 124]},
+            },
+        },
+    ),
 ) -> MessageResponse:
     """
     Частичное обновление номера.

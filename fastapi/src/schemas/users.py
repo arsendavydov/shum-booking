@@ -4,7 +4,9 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 class UserRequestRegister(BaseModel):
     """Схема запроса на регистрацию пользователя."""
 
-    email: EmailStr = Field(..., max_length=255, description="Email пользователя (обязательно)")
+    email: EmailStr = Field(
+        ..., max_length=255, description="Email пользователя (обязательно)", examples=["ivan.petrov@async-black.ru"]
+    )
     password: str = Field(
         ...,
         min_length=8,
@@ -20,7 +22,9 @@ class UserRequestRegister(BaseModel):
 class UserRegister(BaseModel):
     """Схема для создания пользователя в БД."""
 
-    email: EmailStr = Field(..., max_length=255, description="Email пользователя")
+    email: EmailStr = Field(
+        ..., max_length=255, description="Email пользователя", examples=["ivan.petrov@async-black.ru"]
+    )
     hashed_password: str | None = Field(None, max_length=255, description="Хешированный пароль")
     first_name: str | None = Field(None, max_length=100, description="Имя пользователя")
     last_name: str | None = Field(None, max_length=100, description="Фамилия пользователя")
@@ -32,7 +36,9 @@ class UserResponse(BaseModel):
     """Схема ответа с ID пользователя (без пароля)."""
 
     id: int = Field(..., description="ID пользователя")
-    email: EmailStr = Field(..., max_length=255, description="Email пользователя")
+    email: EmailStr = Field(
+        ..., max_length=255, description="Email пользователя", examples=["ivan.petrov@async-black.ru"]
+    )
     first_name: str | None = Field(None, max_length=100, description="Имя пользователя")
     last_name: str | None = Field(None, max_length=100, description="Фамилия пользователя")
     telegram_id: int | None = Field(None, description="Telegram ID пользователя (64-битное целое число)")
@@ -43,7 +49,9 @@ class UserResponse(BaseModel):
 class UserPATCH(BaseModel):
     """Модель для частичного обновления пользователя."""
 
-    email: EmailStr | None = Field(None, max_length=255, description="Email пользователя (опционально)")
+    email: EmailStr | None = Field(
+        None, max_length=255, description="Email пользователя (опционально)", examples=["maria.ivanova@async-black.ru"]
+    )
     hashed_password: str | None = Field(None, max_length=255, description="Хешированный пароль (опционально)")
     first_name: str | None = Field(None, max_length=100, description="Имя пользователя (опционально)")
     last_name: str | None = Field(None, max_length=100, description="Фамилия пользователя (опционально)")
@@ -55,7 +63,9 @@ class SchemaUser(BaseModel):
     """Модель ответа для GET запросов (без пароля)."""
 
     id: int = Field(..., description="ID пользователя")
-    email: EmailStr = Field(..., max_length=255, description="Email пользователя")
+    email: EmailStr = Field(
+        ..., max_length=255, description="Email пользователя", examples=["ivan.petrov@async-black.ru"]
+    )
     first_name: str | None = Field(None, max_length=100, description="Имя пользователя")
     last_name: str | None = Field(None, max_length=100, description="Фамилия пользователя")
     telegram_id: int | None = Field(None, description="Telegram ID пользователя (64-битное целое число)")
@@ -66,7 +76,9 @@ class SchemaUser(BaseModel):
 class UserRequestLogin(BaseModel):
     """Схема запроса на вход пользователя."""
 
-    email: EmailStr = Field(..., max_length=255, description="Email пользователя")
+    email: EmailStr = Field(
+        ..., max_length=255, description="Email пользователя", examples=["ivan.petrov@async-black.ru"]
+    )
     password: str = Field(..., min_length=8, max_length=72, description="Пароль пользователя")
 
 

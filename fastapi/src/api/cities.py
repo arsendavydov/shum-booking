@@ -118,7 +118,16 @@ async def create_city(
 async def update_city(
     cities_service: CitiesServiceDep,
     city_id: int = Path(..., description="ID города"),
-    city: City = Body(...),
+    city: City = Body(
+        ...,
+        openapi_examples={
+            "1": {
+                "summary": "Обновить город",
+                "description": "Полное обновление информации о городе",
+                "value": {"name": "Москва", "country_id": 58},
+            }
+        },
+    ),
 ) -> MessageResponse:
     """
     Полное обновление города.
@@ -153,7 +162,14 @@ async def update_city(
 async def partial_update_city(
     cities_service: CitiesServiceDep,
     city_id: int = Path(..., description="ID города"),
-    city: CityPATCH = Body(...),
+    city: CityPATCH = Body(
+        ...,
+        openapi_examples={
+            "1": {"summary": "Обновить только название", "value": {"name": "Санкт-Петербург"}},
+            "2": {"summary": "Обновить только страну", "value": {"country_id": 58}},
+            "3": {"summary": "Обновить оба поля", "value": {"name": "Санкт-Петербург", "country_id": 58}},
+        },
+    ),
 ) -> MessageResponse:
     """
     Частичное обновление города.

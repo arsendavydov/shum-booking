@@ -113,7 +113,16 @@ async def create_country(
 async def update_country(
     countries_service: CountriesServiceDep,
     country_id: int = Path(..., description="ID страны"),
-    country: Country = Body(...),
+    country: Country = Body(
+        ...,
+        openapi_examples={
+            "1": {
+                "summary": "Обновить страну",
+                "description": "Полное обновление информации о стране",
+                "value": {"name": "Российская Федерация", "iso_code": "RU"},
+            }
+        },
+    ),
 ) -> MessageResponse:
     """
     Полное обновление страны.
@@ -148,7 +157,14 @@ async def update_country(
 async def partial_update_country(
     countries_service: CountriesServiceDep,
     country_id: int = Path(..., description="ID страны"),
-    country: CountryPATCH = Body(...),
+    country: CountryPATCH = Body(
+        ...,
+        openapi_examples={
+            "1": {"summary": "Обновить только название", "value": {"name": "Российская Федерация"}},
+            "2": {"summary": "Обновить только ISO код", "value": {"iso_code": "RU"}},
+            "3": {"summary": "Обновить оба поля", "value": {"name": "Российская Федерация", "iso_code": "RU"}},
+        },
+    ),
 ) -> MessageResponse:
     """
     Частичное обновление страны.

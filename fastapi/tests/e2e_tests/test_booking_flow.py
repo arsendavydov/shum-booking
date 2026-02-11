@@ -159,9 +159,7 @@ class TestBookingFlow:
             (
                 b
                 for b in my_bookings
-                if b["room_id"] == room_id
-                and b["date_from"] == check_in
-                and b["date_to"] == check_out
+                if b["room_id"] == room_id and b["date_from"] == check_in and b["date_to"] == check_out
             ),
             None,
         )

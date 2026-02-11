@@ -67,7 +67,27 @@ async def get_user_by_id(user_id: int, db: DBDep) -> SchemaUser:
     description="Полностью обновляет информацию о пользователе по указанному ID",
     response_model=MessageResponse,
 )
-async def update_user(user_id: int, users_service: UsersServiceDep, user: UserRegister = Body(...)) -> MessageResponse:
+async def update_user(
+    user_id: int,
+    users_service: UsersServiceDep,
+    user: UserRegister = Body(
+        ...,
+        openapi_examples={
+            "1": {
+                "summary": "Полное обновление пользователя",
+                "description": "Обновление всех полей пользователя",
+                "value": {
+                    "email": "ivan.petrov@async-black.ru",
+                    "hashed_password": "$2b$12$...",
+                    "first_name": "Иван",
+                    "last_name": "Петров",
+                    "telegram_id": 123456789,
+                    "pachca_id": 987654321,
+                },
+            }
+        },
+    ),
+) -> MessageResponse:
     """
     Полное обновление пользователя.
 
@@ -95,7 +115,19 @@ async def update_user(user_id: int, users_service: UsersServiceDep, user: UserRe
     response_model=MessageResponse,
 )
 async def partial_update_user(
-    user_id: int, users_service: UsersServiceDep, user: UserPATCH = Body(...)
+    user_id: int,
+    users_service: UsersServiceDep,
+    user: UserPATCH = Body(
+        ...,
+        openapi_examples={
+            "1": {"summary": "Обновить только имя", "value": {"first_name": "Иван"}},
+            "2": {"summary": "Обновить email", "value": {"email": "new.email@async-black.ru"}},
+            "3": {
+                "summary": "Обновить несколько полей",
+                "value": {"first_name": "Мария", "last_name": "Иванова", "telegram_id": 987654321},
+            },
+        },
+    ),
 ) -> MessageResponse:
     """
     Частичное обновление пользователя.
