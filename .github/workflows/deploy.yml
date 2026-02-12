@@ -266,6 +266,10 @@ jobs:
           CI_REGISTRY: ${{ secrets.CI_REGISTRY }}
           CI_REGISTRY_USER: ${{ secrets.CI_REGISTRY_USER }}
           CI_REGISTRY_PASSWORD: ${{ secrets.CI_REGISTRY_PASSWORD }}
+          K3S_SSH_USER: ${{ secrets.K3S_SSH_USER }}
+          K3S_SERVER_IP: ${{ secrets.K3S_SERVER_IP }}
+          K3S_SSH_USER: ${{ secrets.K3S_SSH_USER }}
+          K3S_SERVER_IP: ${{ secrets.K3S_SERVER_IP }}
         run: |
           echo "=========================================="
           echo "=== DEPLOY (GitHub): Проверка переменных ==="
@@ -510,6 +514,50 @@ jobs:
           echo "🔄 Подстановка переменных для PVC..."
           sed -i "s|\${IMAGES_STORAGE_SIZE:-5Gi}|$IMAGES_STORAGE_SIZE|g" k3s/pvc.yaml
           echo "  ✅ Images PVC: storage=$IMAGES_STORAGE_SIZE"
+
+          # Загрузка переменных rate limit из .prod.env на сервере
+          echo ""
+          echo "=========================================="
+          echo "=== Загрузка переменных из .prod.env ==="
+          echo "=========================================="
+          TMP_ENV="/tmp/prod.env"
+          TMP_ENV_CLEAN="/tmp/prod.env.clean"
+          
+          echo "📥 Загрузка переменных из .prod.env на сервере..."
+          PROD_ENV_PATH="/home/$K3S_SSH_USER/.prod.env"
+          
+          if ssh -i "$K3S_SSH_KEY_PATH" \
+              -o StrictHostKeyChecking=no \
+              -o ConnectTimeout=10 \
+              -o BatchMode=yes \
+              "$K3S_SSH_HOST" "test -f $PROD_ENV_PATH && cat $PROD_ENV_PATH" > "$TMP_ENV" 2>/dev/null; then
+            echo "✅ Файл .prod.env найден на сервере"
+            grep -v '^#' "$TMP_ENV" | grep -v '^$' | grep '=' > "$TMP_ENV_CLEAN" 2>/dev/null || true
+            if [[ -f "$TMP_ENV_CLEAN" ]] && [[ -s "$TMP_ENV_CLEAN" ]]; then
+              set -a
+              # shellcheck disable=SC1090
+              source "$TMP_ENV_CLEAN" 2>/dev/null || true
+              set +a
+              rm -f "$TMP_ENV" "$TMP_ENV_CLEAN"
+              echo "✅ Переменные загружены из .prod.env на сервере"
+            else
+              echo "⚠️  Не удалось обработать .prod.env файл"
+              rm -f "$TMP_ENV" "$TMP_ENV_CLEAN"
+            fi
+          else
+            echo "⚠️  Файл .prod.env не найден на сервере по пути: $PROD_ENV_PATH"
+            echo "   Используем значения по умолчанию"
+          fi
+
+          # Подстановка переменных rate limit в nginx-configmap.yaml
+          # Используем значения из .prod.env или значения по умолчанию
+          RATE_LIMIT_API=${RATE_LIMIT_PER_MINUTE:-1000}
+          RATE_LIMIT_AUTH=${RATE_LIMIT_AUTH_PER_MINUTE:-1000}
+          echo ""
+          echo "🔄 Подстановка переменных rate limit для Nginx ConfigMap..."
+          sed -i "s|\${RATE_LIMIT_PER_MINUTE:-1000}|$RATE_LIMIT_API|g" k3s/nginx-configmap.yaml
+          sed -i "s|\${RATE_LIMIT_AUTH_PER_MINUTE:-1000}|$RATE_LIMIT_AUTH|g" k3s/nginx-configmap.yaml
+          echo "  ✅ Rate limits: API=$RATE_LIMIT_API r/m, Auth=$RATE_LIMIT_AUTH r/m"
 
           # Подстановка домена и email в cert-manager и Ingress
           echo ""
