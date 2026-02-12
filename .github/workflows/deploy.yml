@@ -522,13 +522,12 @@ jobs:
           TMP_ENV_CLEAN="/tmp/prod.env.clean"
           
           echo "📥 Загрузка переменных из .prod.env на сервере..."
-          PROD_ENV_PATH="/home/$K3S_SSH_USER/.prod.env"
           
           if ssh -i "$K3S_SSH_KEY_PATH" \
               -o StrictHostKeyChecking=no \
               -o ConnectTimeout=10 \
               -o BatchMode=yes \
-              "$K3S_SSH_HOST" "test -f $PROD_ENV_PATH && cat $PROD_ENV_PATH" > "$TMP_ENV" 2>/dev/null; then
+              "$K3S_SSH_HOST" "test -f ~/.prod.env && cat ~/.prod.env" > "$TMP_ENV" 2>/dev/null; then
             echo "✅ Файл .prod.env найден на сервере"
             grep -v '^#' "$TMP_ENV" | grep -v '^$' | grep '=' > "$TMP_ENV_CLEAN" 2>/dev/null || true
             if [[ -f "$TMP_ENV_CLEAN" ]] && [[ -s "$TMP_ENV_CLEAN" ]]; then
@@ -543,7 +542,7 @@ jobs:
               rm -f "$TMP_ENV" "$TMP_ENV_CLEAN"
             fi
           else
-            echo "⚠️  Файл .prod.env не найден на сервере по пути: $PROD_ENV_PATH"
+            echo "⚠️  Файл .prod.env не найден на сервере по пути: ~/.prod.env"
             echo "   Используем значения по умолчанию"
           fi
 

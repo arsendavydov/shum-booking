@@ -54,6 +54,9 @@ kubectl delete pvc redis-data-pvc -n "$KUBE_NAMESPACE" --ignore-not-found=true |
 sleep 3
 apply_with_retry k3s/redis-deployment.yaml
 
+echo "🔄 Применение ConfigMap для Nginx..."
+apply_with_retry k3s/nginx-configmap.yaml
+
 echo "🔄 Применение deployment'ов с обновленными ресурсами..."
 kubectl delete deployment fastapi-app celery-worker nginx -n "$KUBE_NAMESPACE" --ignore-not-found=true || true
 sleep 3
