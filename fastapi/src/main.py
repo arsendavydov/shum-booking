@@ -147,7 +147,7 @@ def custom_openapi():
     # Сортируем эндпоинты в разделе "Система" в нужном порядке
     if "paths" in openapi_schema:
         # Порядок эндпоинтов для раздела "Система"
-        system_endpoints_order = ["/health", "/live", "/ready", "/metrics"]
+        system_endpoints_order = ["/health", "/health/detailed", "/live", "/ready", "/metrics"]
 
         # Создаем новый словарь paths с отсортированными эндпоинтами
         sorted_paths = {}

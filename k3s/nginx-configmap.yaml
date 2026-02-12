@@ -90,10 +90,11 @@ data:
                 server_name _;
 
             # Health check для самого nginx (readiness/liveness probe)
+            # Возвращает простой JSON статус
             location = /health {
                 access_log off;
-                return 200 "healthy\n";
-                add_header Content-Type text/plain;
+                add_header Content-Type application/json;
+                return 200 '{"status":"ok"}\n';
             }
 
             # Статические файлы (изображения)

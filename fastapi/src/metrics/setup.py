@@ -32,7 +32,7 @@ def setup_prometheus_instrumentator(app: FastAPI) -> None:
         should_group_status_codes=False,
         should_ignore_untemplated=True,
         should_instrument_requests_inprogress=True,
-        excluded_handlers=["/metrics", "/health", "/ready", "/live"],
+        excluded_handlers=["/metrics", "/health", "/health/detailed", "/ready", "/live"],
         inprogress_name="http_requests_inprogress",
         inprogress_labels=True,
     )

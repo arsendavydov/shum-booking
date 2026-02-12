@@ -1,9 +1,17 @@
 class TestHealthCheck:
     """Тесты для расширенных health checks"""
 
-    def test_health_check_success(self, client):
-        """Проверка успешного health check со всеми сервисами"""
+    def test_health_check_simple(self, client):
+        """Проверка простого health check"""
         response = client.get("/health")
+        assert response.status_code == 200
+
+        data = response.json()
+        assert data == {"status": "ok"}
+
+    def test_health_check_success(self, client):
+        """Проверка успешного детального health check со всеми сервисами"""
+        response = client.get("/health/detailed")
         assert response.status_code == 200
 
         data = response.json()
@@ -29,7 +37,7 @@ class TestHealthCheck:
 
     def test_health_check_database_info(self, client):
         """Проверка наличия информации о БД в health check"""
-        response = client.get("/health")
+        response = client.get("/health/detailed")
         assert response.status_code == 200
 
         data = response.json()
@@ -37,7 +45,7 @@ class TestHealthCheck:
 
     def test_health_check_redis_info(self, client):
         """Проверка наличия информации о Redis в health check"""
-        response = client.get("/health")
+        response = client.get("/health/detailed")
         assert response.status_code == 200
 
         data = response.json()
@@ -45,7 +53,7 @@ class TestHealthCheck:
 
     def test_health_check_celery_info(self, client):
         """Проверка наличия информации о Celery в health check"""
-        response = client.get("/health")
+        response = client.get("/health/detailed")
         assert response.status_code == 200
 
         data = response.json()
@@ -61,7 +69,7 @@ class TestHealthCheck:
 
     def test_health_check_disk_info(self, client):
         """Проверка наличия информации о дисковом пространстве в health check"""
-        response = client.get("/health")
+        response = client.get("/health/detailed")
         assert response.status_code == 200
 
         data = response.json()
