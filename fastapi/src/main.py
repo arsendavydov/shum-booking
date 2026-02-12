@@ -135,6 +135,15 @@ def custom_openapi():
         tags=app.openapi_tags,
     )
 
+    # Добавляем servers для правильной генерации URL в Swagger UI
+    if settings.ROOT_PATH:
+        openapi_schema["servers"] = [
+            {
+                "url": settings.ROOT_PATH,
+                "description": "Production server",
+            }
+        ]
+
     app.openapi_schema = openapi_schema
     return app.openapi_schema
 
