@@ -1,4 +1,4 @@
-# Shum Booking — бэкенд сервиса бронирования отелей на FastAPI
+# Shum Booking - бэкенд сервиса бронирования отелей на FastAPI
 
 Развернут в K3s‑кластере, использует PostgreSQL, Redis, Celery, Nginx. Полноценный CI/CD через GitHub Actions или GitLab.
 
@@ -6,10 +6,10 @@
 
 ## Цели проекта
 
-- **Продакшен-ready архитектура** — асинхронность, слоистая структура, разделение ответственности, CI/CD
-- **Безопасность** — JWT-аутентификация с refresh токенами, rate limiting, HTTPS, защита от основных уязвимостей
-- **Наблюдаемость** — Prometheus-метрики, структурированное логирование, health checks
-- **Устойчивость** — graceful shutdown, retry-логика, проверка готовности компонентов, автоматическое восстановление
+- **Продакшен-ready архитектура** - асинхронность, слоистая структура, разделение ответственности, CI/CD
+- **Безопасность** - JWT-аутентификация с refresh токенами, rate limiting, HTTPS, защита от основных уязвимостей
+- **Наблюдаемость** - Prometheus-метрики, структурированное логирование, health checks
+- **Устойчивость** - graceful shutdown, retry-логика, проверка готовности компонентов, автоматическое восстановление
 
 ---
 
@@ -72,9 +72,9 @@
 
 Все чувствительные данные и настройки выносятся в `.env`‑файлы:
 
-- `.local.env` — локальная разработка
-- `.test.env` — тесты
-- `.prod.env` — продакшен 
+- `.local.env` - локальная разработка
+- `.test.env` - тесты
+- `.prod.env` - продакшен 
 
 Для каждого окружения есть **шаблон**, который коммитится в репозиторий:
 
@@ -118,7 +118,7 @@ docker-compose -f docker-compose.local.yml up --build
 - PostgreSQL на `localhost:5432`
 - Redis на `localhost:6379`
 - FastAPI приложение 
-- Nginx (reverse proxy) — по умолчанию можно открыть в браузере:
+- Nginx (reverse proxy) - по умолчанию можно открыть в браузере:
   - Swagger: `http://localhost:8000/docs` 
 
 
@@ -127,11 +127,11 @@ docker-compose -f docker-compose.local.yml up --build
 
 Проект использует многоуровневое тестирование:
 
-- **Unit‑тесты** (`tests/unit_tests`) — изолированные тесты сервисов, репозиториев, утилит с моками
-- **API‑тесты** (`tests/api_tests`) — интеграционные тесты эндпоинтов FastAPI, проверка валидации и бизнес-логики
-- **E2E тесты** (`tests/e2e_tests`) — end-to-end тесты полных пользовательских сценариев (регистрация → бронирование → отмена)
-- **Тесты health/metrics** (`tests/api_tests/test_health.py`, `tests/metrics`) — проверка health checks и Prometheus метрик
-- **Нагрузочные тесты** (`tests/load_tests`) — тестирование производительности через Locust
+- **Unit‑тесты** (`tests/unit_tests`) - изолированные тесты сервисов, репозиториев, утилит с моками
+- **API‑тесты** (`tests/api_tests`) - интеграционные тесты эндпоинтов FastAPI, проверка валидации и бизнес-логики
+- **E2E тесты** (`tests/e2e_tests`) - end-to-end тесты полных пользовательских сценариев (регистрация → бронирование → отмена)
+- **Тесты health/metrics** (`tests/api_tests/test_health.py`, `tests/metrics`) - проверка health checks и Prometheus метрик
+- **Нагрузочные тесты** (`tests/load_tests`) - тестирование производительности через Locust
 
 Запуск основных проверок (из директории `fastapi`):
 
@@ -158,16 +158,16 @@ pytest              # все тесты
     - проверка готовности всех компонентов после деплоя
 
 Манифесты Kubernetes:
-- `k3s/namespace.yaml` — namespace `booking`
-- `k3s/storageclass.yaml` — storage
-- `k3s/postgres-statefulset.yaml` — PostgreSQL
-- `k3s/redis-deployment.yaml` — Redis
+- `k3s/namespace.yaml` - namespace `booking`
+- `k3s/storageclass.yaml` - storage
+- `k3s/postgres-statefulset.yaml` - PostgreSQL
+- `k3s/redis-deployment.yaml` - Redis
 - `k3s/fastapi-deployment.yaml`, `fastapi-service.yaml`
 - `k3s/celery-deployment.yaml`
 - `k3s/nginx-deployment.yaml`, `nginx-service.yaml`, `nginx-configmap.yaml`
-- `k3s/pvc.yaml` — PVC для изображений
-- `k3s/cert-manager-issuer.yaml` — ClusterIssuer’ы Let’s Encrypt
-- `k3s/ingress.yaml` — Ingress с TLS и префиксом `/apps/shum-booking`
+- `k3s/pvc.yaml` - PVC для изображений
+- `k3s/cert-manager-issuer.yaml` - ClusterIssuer’ы Let’s Encrypt
+- `k3s/ingress.yaml` - Ingress с TLS и префиксом `/apps/shum-booking`
 
 ---
 
@@ -203,7 +203,7 @@ FastAPI приложение экспонирует Prometheus‑совмест�
 Для ручной проверки достаточно открыть `/metrics` в продакшене (за Nginx/Ingress).
 
 В кластере также есть:
-- `metrics-server` — для `kubectl top`
+- `metrics-server` - для `kubectl top`
 - health‑checks и readiness‑пробы для всех подов
 
 ---
@@ -212,7 +212,7 @@ FastAPI приложение экспонирует Prometheus‑совмест�
 
 Ключевые моменты:
 
-- Все чувствительные данные — в `.env`.
+- Все чувствительные данные - в `.env`.
 - JWT‑аутентификация, refresh токены, отзыв токенов.
 - Rate limiting:
   - отдельные лимиты для auth‑эндпоинтов и остальных.
@@ -228,12 +228,12 @@ FastAPI приложение экспонирует Prometheus‑совмест�
 
 ## Документация
 
-- **`README.md`** (этот файл) — обзор проекта и быстрый старт
-- **`ARCHITECTURE.md`** — детальная архитектура и поток данных
-- **`CHANGELOG.md`** — история изменений и релизов
-- **`fastapi/README.md`** — документация FastAPI приложения
-- **`ci/README.md`** — документация по CI/CD процессу
-- **`ci/github/README.md`** — описание GitHub Actions workflow
+- **`README.md`** (этот файл) - обзор проекта и быстрый старт
+- **`ARCHITECTURE.md`** - детальная архитектура и поток данных
+- **`CHANGELOG.md`** - история изменений и релизов
+- **`fastapi/README.md`** - документация FastAPI приложения
+- **`ci/README.md`** - документация по CI/CD процессу
+- **`ci/github/README.md`** - описание GitHub Actions workflow
 
 
 

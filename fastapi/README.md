@@ -1,6 +1,6 @@
-# FastAPI приложение — Shum Booking
+# FastAPI приложение - Shum Booking
 
-Основной модуль проекта — FastAPI приложение для сервиса бронирования отелей.
+Основной модуль проекта - FastAPI приложение для сервиса бронирования отелей.
 
 **🌐 Production:** https://async-black.ru/apps/shum-booking/docs
 
@@ -24,7 +24,7 @@ fastapi/
 │   │   └── users.py       # Пользователи
 │   ├── services/          # Бизнес-логика (Service Layer)
 │   ├── repositories/      # Работа с БД (Repository Layer + Data Mapper)
-│   │   └── mappers/       # Data Mapper для преобразования ORM → Schema
+│   │   └── mappers/       # Data Mapper для преобразования ORM -> Schema
 │   ├── models/            # SQLAlchemy ORM модели
 │   ├── schemas/           # Pydantic схемы (DTO)
 │   ├── middleware/        # Middleware (rate limiting, logging, exception handling)
@@ -59,22 +59,22 @@ HTTP Request
     ↓
 API Layer (api/*.py)
     ↓
-Service Layer (services/*.py) — бизнес-логика
+Service Layer (services/*.py) - бизнес-логика
     ↓
-Repository Layer (repositories/*.py) — работа с БД
+Repository Layer (repositories/*.py) - работа с БД
     ↓
-Data Mapper (repositories/mappers/*.py) — ORM → Schema
+Data Mapper (repositories/mappers/*.py) - ORM -> Schema
     ↓
-ORM Models (models/*.py) — SQLAlchemy
+ORM Models (models/*.py) - SQLAlchemy
     ↓
 PostgreSQL
 ```
 
 **Ключевые принципы:**
-- **API Layer** — только валидация запросов и формирование ответов
-- **Service Layer** — вся бизнес-логика, не зависит от БД
-- **Repository Layer** — абстракция над БД, использует Data Mapper для преобразования
-- **Data Mapper** — преобразует ORM объекты в Pydantic схемы (не используется `from_attributes=True` напрямую)
+- **API Layer** - только валидация запросов и формирование ответов
+- **Service Layer** - вся бизнес-логика, не зависит от БД
+- **Repository Layer** - абстракция над БД, использует Data Mapper для преобразования
+- **Data Mapper** - преобразует ORM объекты в Pydantic схемы (не используется `from_attributes=True` напрямую)
 
 Детальная схема потока данных описана в [`ARCHITECTURE.md`](../ARCHITECTURE.md).
 
@@ -167,9 +167,9 @@ E2E_REQUEST_DELAY=0.2 pytest tests/e2e_tests/ -v
 ```
 
 **Важно:** E2E тесты требуют запущенное приложение. Они проверяют полные пользовательские сценарии:
-- Полный цикл бронирования (регистрация → поиск → бронирование → отмена)
-- Полный цикл аутентификации (регистрация → вход → обновление токена → выход)
-- Полный цикл поиска отеля (страна → город → отель → номера)
+- Полный цикл бронирования (регистрация -> поиск -> бронирование -> отмена)
+- Полный цикл аутентификации (регистрация -> вход -> обновление токена -> выход)
+- Полный цикл поиска отеля (страна -> город -> отель -> номера)
 
 #### Все тесты
 
@@ -194,11 +194,11 @@ pytest tests/ -v
 
 ### Типы тестов
 
-- **`tests/unit_tests/`** — unit-тесты для сервисов и репозиториев (с моками)
-- **`tests/api_tests/`** — интеграционные тесты для API эндпоинтов
-- **`tests/e2e_tests/`** — E2E тесты (End-to-End) для полных пользовательских сценариев
-- **`tests/database_tests/`** — тесты для проверки индексов БД
-- **`tests/load_tests/`** — нагрузочные тесты через Locust
+- **`tests/unit_tests/`** - unit-тесты для сервисов и репозиториев (с моками)
+- **`tests/api_tests/`** - интеграционные тесты для API эндпоинтов
+- **`tests/e2e_tests/`** - E2E тесты (End-to-End) для полных пользовательских сценариев
+- **`tests/database_tests/`** - тесты для проверки индексов БД
+- **`tests/load_tests/`** - нагрузочные тесты через Locust
 
 ### Маркеры pytest
 
@@ -300,13 +300,13 @@ alembic history --verbose
 
 При добавлении нового функционала следуй архитектуре:
 
-1. **ORM Model** (`src/models/`) — определи SQLAlchemy модель
-2. **Pydantic Schema** (`src/schemas/`) — определи схемы для запросов/ответов
-3. **Repository** (`src/repositories/`) — создай репозиторий с методами работы с БД
-4. **Data Mapper** (`src/repositories/mappers/`) — создай маппер для преобразования ORM → Schema
-5. **Service** (`src/services/`) — создай сервис с бизнес-логикой
-6. **API Router** (`src/api/`) — создай роутер с эндпоинтами
-7. **Миграция** (`src/migrations/versions/`) — создай миграцию для изменений в БД
+1. **ORM Model** (`src/models/`) - определи SQLAlchemy модель
+2. **Pydantic Schema** (`src/schemas/`) - определи схемы для запросов/ответов
+3. **Repository** (`src/repositories/`) - создай репозиторий с методами работы с БД
+4. **Data Mapper** (`src/repositories/mappers/`) - создай маппер для преобразования ORM -> Schema
+5. **Service** (`src/services/`) - создай сервис с бизнес-логикой
+6. **API Router** (`src/api/`) - создай роутер с эндпоинтами
+7. **Миграция** (`src/migrations/versions/`) - создай миграцию для изменений в БД
 
 ### Пример: добавление нового эндпоинта
 
@@ -335,8 +335,8 @@ app.include_router(new_feature_router, prefix="/new-feature")
 ### Логирование
 
 Логи пишутся в `fastapi/logs/`:
-- `app.log` — основной лог приложения
-- `app_test.log` — лог тестового окружения
+- `app.log` - основной лог приложения
+- `app_test.log` - лог тестового окружения
 
 Настройки логирования в `src/utils/logger.py`.
 
@@ -346,16 +346,16 @@ app.include_router(new_feature_router, prefix="/new-feature")
 
 Основные зависимости (см. `requirements.txt`):
 
-- **FastAPI** — веб-фреймворк
-- **SQLAlchemy** (async) — ORM
-- **Alembic** — миграции БД
-- **Pydantic** — валидация данных
-- **Redis** — кэширование и rate limiting
-- **Celery** — фоновые задачи
-- **Prometheus Client** — метрики
-- **Pytest** — тестирование
-- **Ruff** — линтинг
-- **Pyright** — проверка типов
+- **FastAPI** - веб-фреймворк
+- **SQLAlchemy** (async) - ORM
+- **Alembic** - миграции БД
+- **Pydantic** - валидация данных
+- **Redis** - кэширование и rate limiting
+- **Celery** - фоновые задачи
+- **Prometheus Client** - метрики
+- **Pytest** - тестирование
+- **Ruff** - линтинг
+- **Pyright** - проверка типов
 
 ---
 

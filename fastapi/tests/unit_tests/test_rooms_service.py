@@ -146,7 +146,7 @@ class TestRoomsServiceCreateRoom:
         mock_rooms_repo.create.return_value = SchemaRoom(
             id=1, hotel_id=hotel_id, title="Номер", price=1000, quantity=5, description=None, facilities=[]
         )
-        # Первое удобство существует, второе — нет
+        # Первое удобство существует, второе - нет
         mock_facilities_repo.get_by_id.side_effect = [SchemaFacility(id=1, title="WiFi"), None]
 
         with (

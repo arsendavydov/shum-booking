@@ -25,11 +25,11 @@ GitHub Actions используется как **основной способ �
 
 Основная логика деплоя и работы с кластером K3s вынесена в общие скрипты в корне `ci/`:
 
-- `ci/common/check-active-provider.sh` — проверка `ACTIVE_CI_PROVIDER` в `~/.prod.env` на сервере
-- `ci/get-kubeconfig.sh` — получение kubeconfig с сервера по SSH (используется и GitHub Actions, и GitLab CI)
-- `ci/create-configmap-and-secret.sh` — загрузка `.prod.env` с сервера, создание ConfigMap и Secret
-- `ci/apply-manifests.sh` — применение всех Kubernetes‑манифестов с ретраями
-- `ci/helpers.sh` — вспомогательные функции для работы с SSH, kubectl и retry логики
+- `ci/common/check-active-provider.sh` - проверка `ACTIVE_CI_PROVIDER` в `~/.prod.env` на сервере
+- `ci/get-kubeconfig.sh` - получение kubeconfig с сервера по SSH (используется и GitHub Actions, и GitLab CI)
+- `ci/create-configmap-and-secret.sh` - загрузка `.prod.env` с сервера, создание ConfigMap и Secret
+- `ci/apply-manifests.sh` - применение всех Kubernetes‑манифестов с ретраями
+- `ci/helpers.sh` - вспомогательные функции для работы с SSH, kubectl и retry логики
 
 GitHub Actions (`.github/workflows/deploy.yml`) подготавливает окружение (SSH ключ, переменные CI из GitHub Secrets) и вызывает эти общие скрипты.
 

@@ -99,7 +99,7 @@ deploy:production:
     - ci/get-kubeconfig.sh
   script:
     - |
-      echo "=== DEPLOY: Шаг 1/3 — экспорт переменных ресурсов и health-check ==="
+      echo "=== DEPLOY: Шаг 1/3 - экспорт переменных ресурсов и health-check ==="
       # Экспорт переменных registry для создания imagePullSecret (без значений по умолчанию)
       : "${CI_REGISTRY:?CI_REGISTRY is required}"
       : "${CI_REGISTRY_USER:?CI_REGISTRY_USER is required}"
@@ -149,7 +149,7 @@ deploy:production:
       export HEALTH_CHECK_FAILURE_THRESHOLD=${HEALTH_CHECK_FAILURE_THRESHOLD:-3}
       export HEALTH_CHECK_READINESS_INITIAL_DELAY=${HEALTH_CHECK_READINESS_INITIAL_DELAY:-10}
       export HEALTH_CHECK_READINESS_PERIOD=${HEALTH_CHECK_READINESS_PERIOD:-5}
-      echo "=== DEPLOY: Шаг 2/3 — обновление тегов образов в манифестах ==="
+      echo "=== DEPLOY: Шаг 2/3 - обновление тегов образов в манифестах ==="
       # Заменяем плейсхолдеры ${CI_REGISTRY_IMAGE}:latest / ${CI_REGISTRY_IMAGE}/nginx:latest и IMAGE_PULL_SECRET_NAME на конкретные значения
       sed -i "s|\${CI_REGISTRY_IMAGE}:latest|$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA|g" k3s/fastapi-deployment.yaml || true
       sed -i "s|\${CI_REGISTRY_IMAGE}:latest|$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA|g" k3s/celery-deployment.yaml || true
@@ -214,9 +214,9 @@ deploy:production:
       # Подстановка домена и email в cert-manager и Ingress
       sed -i "s|\${LETSENCRYPT_EMAIL:-arsen.davydov@gmail.com}|$LETSENCRYPT_EMAIL|g" k3s/cert-manager-issuer.yaml
       sed -i "s|\${DOMAIN:-async-black.ru}|$DOMAIN|g" k3s/ingress.yaml
-    - echo "=== DEPLOY: Шаг 3/3 — создание ConfigMap и Secret ==="
+    - echo "=== DEPLOY: Шаг 3/3 - создание ConfigMap и Secret ==="
     - ci/create-configmap-and-secret.sh
-    - echo "=== DEPLOY: Финальный шаг — применение Kubernetes манифестов ==="
+    - echo "=== DEPLOY: Финальный шаг - применение Kubernetes манифестов ==="
     - ci/apply-manifests.sh
   environment:
     name: production

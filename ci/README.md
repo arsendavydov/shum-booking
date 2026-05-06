@@ -8,15 +8,15 @@
 
 Текущая структура:
 
-- `ci/` — общие скрипты для деплоя (используются и GitHub Actions, и GitLab CI)
-  - `get-kubeconfig.sh` — получение kubeconfig с сервера по SSH
-  - `create-configmap-and-secret.sh` — загрузка `.prod.env` с сервера, создание ConfigMap и Secret
-  - `apply-manifests.sh` — применение всех Kubernetes-манифестов с ретраями
-  - `helpers.sh` — вспомогательные функции (SSH, kubectl, retry логика)
-- `ci/common/` — общие скрипты для проверки активного CI провайдера
-  - `check-active-provider.sh` — проверка `ACTIVE_CI_PROVIDER` в `~/.prod.env` на сервере
-- `ci/github/` — документация и специфичные скрипты для GitHub Actions
-- `ci/gitlab/` — документация и специфичные скрипты для GitLab CI
+- `ci/` - общие скрипты для деплоя (используются и GitHub Actions, и GitLab CI)
+  - `get-kubeconfig.sh` - получение kubeconfig с сервера по SSH
+  - `create-configmap-and-secret.sh` - загрузка `.prod.env` с сервера, создание ConfigMap и Secret
+  - `apply-manifests.sh` - применение всех Kubernetes-манифестов с ретраями
+  - `helpers.sh` - вспомогательные функции (SSH, kubectl, retry логика)
+- `ci/common/` - общие скрипты для проверки активного CI провайдера
+  - `check-active-provider.sh` - проверка `ACTIVE_CI_PROVIDER` в `~/.prod.env` на сервере
+- `ci/github/` - документация и специфичные скрипты для GitHub Actions
+- `ci/gitlab/` - документация и специфичные скрипты для GitLab CI
 
 ### Основной CI/CD
 
